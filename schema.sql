@@ -68,20 +68,36 @@ from matches
 where status = 'completed'
 order by match_date desc;
 
--- Row Level Security placeholders — lock these down once you add auth.
+-- Row Level Security — single shared coach account, no per-row ownership
+-- model, so policies just gate on being a signed-in (authenticated) session.
 alter table players enable row level security;
 alter table matches enable row level security;
 alter table events  enable row level security;
 
--- Example permissive policy for a single-team private app.
--- Replace with proper auth-scoped policies before going live.
-create policy "allow all for now" on players for all using (true);
-create policy "allow all for now" on matches for all using (true);
-create policy "allow all for now" on events for all using (true);
+drop policy if exists "allow all for now" on players;
+drop policy if exists "allow all for now" on matches;
+drop policy if exists "allow all for now" on events;
+drop policy if exists "authenticated full access" on players;
+drop policy if exists "authenticated full access" on matches;
+drop policy if exists "authenticated full access" on events;
 
--- RLS policies only take effect once a role has base table privileges —
--- without these grants, PostgREST gets "permission denied" before the
--- policies above are ever consulted.
-grant usage on schema public to anon, authenticated;
-grant select, insert, update, delete on players, matches, events to anon, authenticated;
-grant select on player_season_stats, results_log to anon, authenticated;
+create policy "authenticated full access" on players
+  for all to authenticated using (true) with check (true);
+create policy "authenticated full access" on matches
+  for all to authenticated using (true) with check (true);
+create policy "authenticated full access" on events
+  for all to authenticated using (true) with check (true);
+
+-- Base table/view privileges — RLS only takes effect once a role has
+-- some grant; conversely, revoking the grant blocks anon before RLS
+-- policies are even consulted (defense in depth). The anon key stays
+-- public in the client JS, but by itself it can no longer read or
+-- write anything — only a real signed-in session (via Supabase Auth)
+-- can, which is the actual security boundary.
+revoke all on players, matches, events from anon;
+revoke all on player_season_stats, results_log from anon;
+revoke usage on schema public from anon;
+
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on players, matches, events to authenticated;
+grant select on player_season_stats, results_log to authenticated;

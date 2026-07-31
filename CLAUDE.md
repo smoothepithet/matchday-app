@@ -51,10 +51,11 @@ dark panel, large tabular digits, dashed/striped border details.
 - Views: `player_season_stats` (goals/assists/saves/appearances per player,
   includes `squad_number`), `results_log` (W/D/L per completed match)
 
-RLS is currently wide open (`allow all for now` policies) — **fine for
-development, must be locked down with real auth before this holds any real
-personal data** (even just kids' first names) in a publicly reachable
-database. Don't forget this when wiring up auth later.
+RLS now requires a signed-in Supabase Auth session (`to authenticated`
+policies) — the `anon` role has no grants at all on the 3 tables or the 2
+views. Both apps gate their UI behind a login screen (single shared coach
+email/password account) and send the user's access token as the bearer on
+every data call; the anon key alone can no longer read or write anything.
 
 ## Current status
 
@@ -63,10 +64,17 @@ Working:
   persisted in `localStorage` under key `squad`), match setup, live
   scoreboard, goal/assist/save capture via player picker, undo, offline
   queue (`localStorage` key `sync_queue`), best-effort sync to Supabase REST
-  API on match end and on `online` event
+  API on match end and on `online` event. Deployed to GitHub Pages.
 - Dashboard: reads `player_season_stats` and `results_log` views directly
 - Report generator: pulls a match + events from Supabase, prompts Claude to
   draft a caption-length report
+- Auth: both recorder and dashboard are gated behind a login screen backed
+  by Supabase Auth (single shared coach email/password account, created
+  manually via Supabase Dashboard → Authentication → Users). Session
+  (`access_token`/`refresh_token`/`expires_at`) is stored in `localStorage`
+  under `auth_session` and refreshed opportunistically; the recorder never
+  blocks on a refresh failure (keeps working offline pitch-side), the
+  dashboard bounces back to the login screen on a definite auth failure.
 
 Known gaps (in priority order for next work):
 1. **Player ID resolution isn't wired up in the sync path.** `recorder/app.js`
@@ -76,13 +84,12 @@ Known gaps (in priority order for next work):
    matching `players` row (or create one on first sync) and attach its id to
    each event. Do this before relying on the dashboard's per-player stats
    for real matches.
-2. **RLS policies are placeholders** — see above.
-3. **No automated social posting.** Meta (Instagram/Facebook) requires app
+2. **No automated social posting.** Meta (Instagram/Facebook) requires app
    review + business verification; X posting requires a paid API tier.
    Current plan is manual copy-paste from the generated report — revisit
    only if this becomes a bigger multi-team tool.
-4. **No report image/template**, just text.
-5. Squad list is per-device (`localStorage`), not synced to Supabase yet —
+3. **No report image/template**, just text.
+4. Squad list is per-device (`localStorage`), not synced to Supabase yet —
    fine for a single coach's phone, would need syncing if multiple people
    use the recorder.
 
@@ -95,8 +102,12 @@ Known gaps (in priority order for next work):
   dashboard (this is a real deployable app, not a Claude.ai artifact — the
   usual "no localStorage" restriction doesn't apply here).
 - Supabase config (`SUPABASE_URL`, `SUPABASE_ANON_KEY`) lives as a `CONFIG`
-  object at the top of `recorder/app.js` and `dashboard/app.js` — currently
-  blank placeholders. Same values go in both places.
+  object at the top of `recorder/app.js` and `dashboard/app.js`. Same values
+  go in both places.
+- The auth helper (`getSession`/`setSession`/`clearSession`/`signIn`/
+  `refreshSession`/`ensureFreshSession`) is duplicated verbatim in both
+  `app.js` files, same convention as `CONFIG` — no shared module, since
+  there's no build step. Keep both copies in sync if this logic changes.
 - Team name lives as `CONFIG.TEAM_NAME` in `recorder/app.js` and
   `TEAM_NAME` in `report-generator/generate_report.py` — update both if the
   team name ever changes.

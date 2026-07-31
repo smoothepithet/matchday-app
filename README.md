@@ -24,20 +24,32 @@ Paste your Supabase URL + anon key into:
 - `recorder/app.js` (top of file, `CONFIG`)
 - `dashboard/app.js` (top of file, `CONFIG`)
 
-## 3. Try the recorder
+## 3. Create the coach login
+
+Both apps are gated behind a Supabase Auth login (one shared account is
+enough for a single-team app):
+
+1. Supabase Dashboard → Authentication → Users → **Add user**
+2. Set an email + password, and check **Auto Confirm User** (otherwise
+   sign-in fails with "Email not confirmed")
+3. Optional but recommended: Authentication → Settings → raise the JWT/
+   session expiry above the 1hr default, since matches can run 90+ minutes
+
+## 4. Try the recorder
 
 Open `recorder/index.html` on a phone (host it somewhere simple — GitHub Pages
-works well and is free). Add it to your home screen for the full app-like feel.
-It works fully offline; events queue locally and sync automatically once
-you're back on signal.
+works well and is free), sign in with the coach account, and add it to your
+home screen for the full app-like feel. It works fully offline once signed
+in; events queue locally and sync automatically once you're back on signal.
 
-## 4. Try the dashboard
+## 5. Try the dashboard
 
-Open `dashboard/index.html` anywhere. It reads two views defined in the
-schema — `player_season_stats` and `results_log` — so there's no app logic
-to duplicate if you want to build other views later (e.g. a league table).
+Open `dashboard/index.html` anywhere and sign in with the same coach
+account. It reads two views defined in the schema — `player_season_stats`
+and `results_log` — so there's no app logic to duplicate if you want to
+build other views later (e.g. a league table).
 
-## 5. Generate a match report
+## 6. Generate a match report
 
 ```bash
 cd report-generator
@@ -58,9 +70,6 @@ see the note on social APIs below.
   reused every match), but the sync step still sends player *names* to
   Supabase rather than looking up/creating matching rows in the `players`
   table. Worth fixing before relying on the dashboard's per-player stats.
-- **Row Level Security is wide open** (`allow all for now` policies). Fine
-  for testing, but lock this down with Supabase Auth before any real personal
-  data (even just kids' first names) sits in a publicly reachable database.
 - **No automated social posting.** Instagram/Facebook require Meta app review
   and business verification; X requires a paid API tier for posting. Given
   the overhead for a grassroots team, manual copy-paste is the pragmatic v1.

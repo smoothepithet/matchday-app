@@ -74,6 +74,16 @@ body {
   color: var(--white);
 }
 
+.logout-link {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--silver);
+  font-size: 11px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /* --- Scoreboard signature element --- */
 .scoreboard {
   background: var(--panel);

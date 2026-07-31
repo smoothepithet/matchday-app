@@ -28,9 +28,82 @@ const store = {
 };
 
 // ---------------------------------------------------------------
+// Auth (Supabase email/password, single shared coach account)
+// ---------------------------------------------------------------
+function getSession() {
+  return store.get("auth_session", null);
+}
+
+function setSession(tokenResponse) {
+  const session = {
+    access_token: tokenResponse.access_token,
+    refresh_token: tokenResponse.refresh_token,
+    expires_at: Date.now() + tokenResponse.expires_in * 1000,
+  };
+  store.set("auth_session", session);
+  return session;
+}
+
+function clearSession() {
+  localStorage.removeItem("auth_session");
+}
+
+async function signIn(email, password) {
+  const res = await fetch(`${CONFIG.SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    method: "POST",
+    headers: { apikey: CONFIG.SUPABASE_ANON_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error_description || data.msg || "Invalid email or password");
+  }
+  return setSession(data);
+}
+
+async function refreshSession(refreshToken) {
+  let res;
+  try {
+    res = await fetch(`${CONFIG.SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method: "POST",
+      headers: { apikey: CONFIG.SUPABASE_ANON_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+  } catch {
+    throw Object.assign(new Error("network"), { definite: false });
+  }
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw Object.assign(new Error(data.msg || data.error_description || "refresh_failed"), { definite: true });
+  }
+  return setSession(await res.json());
+}
+
+// Never throws. A network failure keeps the stale session (so the
+// recorder keeps working offline pitch-side); only a server-confirmed
+// rejection of the refresh_token clears the session.
+async function ensureFreshSession() {
+  const session = getSession();
+  if (!session) return null;
+  if (session.expires_at - 60_000 > Date.now()) return session;
+  try {
+    return await refreshSession(session.refresh_token);
+  } catch (err) {
+    if (err.definite) {
+      clearSession();
+      return null;
+    }
+    return session;
+  }
+}
+
+// ---------------------------------------------------------------
 // Squad (player profiles) — persists across matches on this device
 // ---------------------------------------------------------------
 let squad = store.get("squad", []); // [{ id, name, number }]
+let match = null;       // current match object while live
+let clockInterval = null;
+let pendingAction = null; // resolves the currently-open player picker
 
 function saveSquad() {
   store.set("squad", squad);
@@ -73,83 +146,6 @@ function updateSquadCountBadge() {
   const badge = document.getElementById("squad-count-badge");
   if (badge) badge.textContent = `(${squad.length} player${squad.length === 1 ? "" : "s"})`;
 }
-
-document.getElementById("add-player-btn").addEventListener("click", () => {
-  const nameInput = document.getElementById("new-player-name");
-  const numberInput = document.getElementById("new-player-number");
-  const name = nameInput.value.trim();
-  if (!name) return;
-  squad.push({
-    id: crypto.randomUUID(),
-    name,
-    number: numberInput.value ? parseInt(numberInput.value, 10) : null,
-  });
-  nameInput.value = "";
-  numberInput.value = "";
-  nameInput.focus();
-  saveSquad();
-});
-
-document.getElementById("manage-squad-btn").addEventListener("click", () => {
-  document.getElementById("setup").classList.add("hidden");
-  document.getElementById("squad-screen").classList.remove("hidden");
-});
-
-document.getElementById("squad-back-btn").addEventListener("click", () => {
-  document.getElementById("squad-screen").classList.add("hidden");
-  document.getElementById("setup").classList.remove("hidden");
-});
-
-renderSquadList();
-updateSquadCountBadge();
-
-// ---------------------------------------------------------------
-// App state
-// ---------------------------------------------------------------
-let match = null;       // current match object while live
-let clockInterval = null;
-let pendingAction = null; // resolves the currently-open player picker
-
-// ---------------------------------------------------------------
-// Setup screen
-// ---------------------------------------------------------------
-document.getElementById("match-date").valueAsDate = new Date();
-
-document.getElementById("start-match-btn").addEventListener("click", () => {
-  if (!squad.length) {
-    alert("Add at least one player to the squad first (tap Manage Squad).");
-    return;
-  }
-
-  const opposition = document.getElementById("opposition").value.trim() || "Opposition";
-  const matchDate = document.getElementById("match-date").value;
-  const venue = document.getElementById("venue").value;
-  const competition = document.getElementById("competition").value.trim();
-
-  match = {
-    id: crypto.randomUUID(),
-    opposition,
-    match_date: matchDate,
-    venue,
-    competition,
-    our_score: 0,
-    their_score: 0,
-    status: "in_progress",
-    events: [],       // { id, type, player, number, assist, minute }
-    startedAt: Date.now(),
-  };
-
-  document.getElementById("setup").classList.add("hidden");
-  document.getElementById("match-screen").classList.remove("hidden");
-  document.getElementById("fixture-label").textContent =
-    venue === "home"
-      ? `${CONFIG.TEAM_NAME} vs ${match.opposition}`
-      : `${match.opposition} vs ${CONFIG.TEAM_NAME}`;
-
-  startClock();
-  renderScore();
-  renderLog();
-});
 
 // ---------------------------------------------------------------
 // Clock (minutes only — good enough for a match report)
@@ -215,54 +211,6 @@ function undoEvent(id) {
 }
 
 // ---------------------------------------------------------------
-// Action buttons
-// ---------------------------------------------------------------
-document.getElementById("btn-goal-us").addEventListener("click", () => {
-  match.our_score += 1;
-  renderScore();
-  openPicker("Who scored?", (scorer) => {
-    const event = { id: crypto.randomUUID(), type: "goal", player: scorer, assist: null, minute: currentMinute() };
-    match.events.push(event);
-    renderLog();
-    if (scorer) {
-      openPicker("Assist? (optional)", (assister) => {
-        event.assist = assister || null;
-        renderLog();
-      });
-    }
-  });
-});
-
-document.getElementById("btn-save").addEventListener("click", () => {
-  openPicker("Who made the save?", (keeper) => {
-    match.events.push({ id: crypto.randomUUID(), type: "save", player: keeper, minute: currentMinute() });
-    renderLog();
-  });
-});
-
-document.getElementById("btn-goal-them").addEventListener("click", () => {
-  match.their_score += 1;
-  match.events.push({ id: crypto.randomUUID(), type: "goal_them", player: null, minute: currentMinute() });
-  renderScore();
-  renderLog();
-});
-
-document.getElementById("btn-end-match").addEventListener("click", () => {
-  if (!confirm("End the match? This locks in the final score.")) return;
-  clearInterval(clockInterval);
-  match.status = "completed";
-
-  const archive = store.get("matches_archive", []);
-  archive.push(match);
-  store.set("matches_archive", archive);
-
-  syncMatch(match);
-
-  alert(`Final score saved: ${CONFIG.TEAM_NAME} ${match.our_score} – ${match.their_score} ${match.opposition}`);
-  window.location.reload();
-});
-
-// ---------------------------------------------------------------
 // Player picker sheet — pulls from the saved squad, shows shirt numbers
 // ---------------------------------------------------------------
 function openPicker(title, onPick) {
@@ -290,10 +238,176 @@ function closePicker() {
   document.getElementById("picker-backdrop").classList.add("hidden");
 }
 
-document.getElementById("picker-skip").addEventListener("click", () => {
-  closePicker();
-  if (pendingAction) pendingAction(null);
+// ---------------------------------------------------------------
+// App init — wired up once, after a session is confirmed. Everything
+// here was previously top-level code that ran unconditionally on load;
+// gating it behind login means none of it touches the DOM until the
+// coach has signed in.
+// ---------------------------------------------------------------
+function initApp() {
+  document.getElementById("add-player-btn").addEventListener("click", () => {
+    const nameInput = document.getElementById("new-player-name");
+    const numberInput = document.getElementById("new-player-number");
+    const name = nameInput.value.trim();
+    if (!name) return;
+    squad.push({
+      id: crypto.randomUUID(),
+      name,
+      number: numberInput.value ? parseInt(numberInput.value, 10) : null,
+    });
+    nameInput.value = "";
+    numberInput.value = "";
+    nameInput.focus();
+    saveSquad();
+  });
+
+  document.getElementById("manage-squad-btn").addEventListener("click", () => {
+    document.getElementById("setup").classList.add("hidden");
+    document.getElementById("squad-screen").classList.remove("hidden");
+  });
+
+  document.getElementById("squad-back-btn").addEventListener("click", () => {
+    document.getElementById("squad-screen").classList.add("hidden");
+    document.getElementById("setup").classList.remove("hidden");
+  });
+
+  renderSquadList();
+  updateSquadCountBadge();
+
+  document.getElementById("match-date").valueAsDate = new Date();
+
+  document.getElementById("start-match-btn").addEventListener("click", () => {
+    if (!squad.length) {
+      alert("Add at least one player to the squad first (tap Manage Squad).");
+      return;
+    }
+
+    const opposition = document.getElementById("opposition").value.trim() || "Opposition";
+    const matchDate = document.getElementById("match-date").value;
+    const venue = document.getElementById("venue").value;
+    const competition = document.getElementById("competition").value.trim();
+
+    match = {
+      id: crypto.randomUUID(),
+      opposition,
+      match_date: matchDate,
+      venue,
+      competition,
+      our_score: 0,
+      their_score: 0,
+      status: "in_progress",
+      events: [],       // { id, type, player, number, assist, minute }
+      startedAt: Date.now(),
+    };
+
+    document.getElementById("setup").classList.add("hidden");
+    document.getElementById("match-screen").classList.remove("hidden");
+    document.getElementById("fixture-label").textContent =
+      venue === "home"
+        ? `${CONFIG.TEAM_NAME} vs ${match.opposition}`
+        : `${match.opposition} vs ${CONFIG.TEAM_NAME}`;
+
+    startClock();
+    renderScore();
+    renderLog();
+  });
+
+  document.getElementById("btn-goal-us").addEventListener("click", () => {
+    match.our_score += 1;
+    renderScore();
+    openPicker("Who scored?", (scorer) => {
+      const event = { id: crypto.randomUUID(), type: "goal", player: scorer, assist: null, minute: currentMinute() };
+      match.events.push(event);
+      renderLog();
+      if (scorer) {
+        openPicker("Assist? (optional)", (assister) => {
+          event.assist = assister || null;
+          renderLog();
+        });
+      }
+    });
+  });
+
+  document.getElementById("btn-save").addEventListener("click", () => {
+    openPicker("Who made the save?", (keeper) => {
+      match.events.push({ id: crypto.randomUUID(), type: "save", player: keeper, minute: currentMinute() });
+      renderLog();
+    });
+  });
+
+  document.getElementById("btn-goal-them").addEventListener("click", () => {
+    match.their_score += 1;
+    match.events.push({ id: crypto.randomUUID(), type: "goal_them", player: null, minute: currentMinute() });
+    renderScore();
+    renderLog();
+  });
+
+  document.getElementById("btn-end-match").addEventListener("click", () => {
+    if (!confirm("End the match? This locks in the final score.")) return;
+    clearInterval(clockInterval);
+    match.status = "completed";
+
+    const archive = store.get("matches_archive", []);
+    archive.push(match);
+    store.set("matches_archive", archive);
+
+    syncMatch(match);
+
+    alert(`Final score saved: ${CONFIG.TEAM_NAME} ${match.our_score} – ${match.their_score} ${match.opposition}`);
+    window.location.reload();
+  });
+
+  document.getElementById("picker-skip").addEventListener("click", () => {
+    closePicker();
+    if (pendingAction) pendingAction(null);
+  });
+}
+
+// ---------------------------------------------------------------
+// Login / logout — these listeners are always wired (the login
+// screen's own elements exist regardless of auth state); initApp()
+// itself only runs once a session is confirmed.
+// ---------------------------------------------------------------
+function showLogin() {
+  document.getElementById("login-screen").classList.remove("hidden");
+  document.getElementById("setup").classList.add("hidden");
+}
+
+function showApp() {
+  document.getElementById("login-screen").classList.add("hidden");
+  document.getElementById("setup").classList.remove("hidden");
+  document.getElementById("logout-btn").classList.remove("hidden");
+}
+
+document.getElementById("login-btn").addEventListener("click", async () => {
+  const errorEl = document.getElementById("login-error");
+  const email = document.getElementById("login-email").value.trim();
+  const password = document.getElementById("login-password").value;
+  try {
+    await signIn(email, password);
+    errorEl.classList.add("hidden");
+    showApp();
+    initApp();
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.remove("hidden");
+  }
 });
+
+document.getElementById("logout-btn").addEventListener("click", () => {
+  clearSession();
+  window.location.reload();
+});
+
+// Boot: already-signed-in devices skip straight to the app (and get a
+// fire-and-forget token refresh); everyone else sees the login screen.
+if (getSession()) {
+  showApp();
+  initApp();
+  ensureFreshSession();
+} else {
+  showLogin();
+}
 
 // ---------------------------------------------------------------
 // Sync to Supabase (best-effort; falls back to local queue)
@@ -306,11 +420,18 @@ async function syncMatch(m) {
     return;
   }
 
+  const session = await ensureFreshSession();
+  if (!session) {
+    if (statusEl) statusEl.textContent = "Not signed in — saved on this device, will retry once signed in";
+    queueForSync(m);
+    return;
+  }
+
   try {
     const headers = {
       "Content-Type": "application/json",
       apikey: CONFIG.SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
+      Authorization: `Bearer ${session.access_token}`,
     };
 
     const matchRes = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/matches`, {

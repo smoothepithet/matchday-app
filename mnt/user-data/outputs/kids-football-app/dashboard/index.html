@@ -123,6 +123,40 @@
     padding: 2px 5px;
     border-radius: 4px;
   }
+  .hidden { display: none !important; }
+  .login-card {
+    max-width: 360px;
+    margin: 60px auto;
+  }
+  .login-card input {
+    width: 100%;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 15px;
+    box-sizing: border-box;
+  }
+  .login-card button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    background: var(--void);
+    color: var(--white);
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+  }
+  .logout-link {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--silver);
+    font-size: 12px;
+    text-decoration: underline;
+    cursor: pointer;
+  }
 </style>
 </head>
 <body>
@@ -132,8 +166,18 @@
     <h1>Wyrley Rockets — Season Dashboard</h1>
     <p>Top scorers, assists, saves and results — updates as match data syncs in.</p>
   </div>
+  <button type="button" class="logout-link hidden" id="logout-btn">Sign out</button>
 </header>
-<main>
+
+<div id="login-screen" class="panel login-card">
+  <h2>Coach Sign In</h2>
+  <input id="login-email" type="email" autocomplete="username" placeholder="Email" />
+  <input id="login-password" type="password" autocomplete="current-password" placeholder="Password" />
+  <p id="login-error" class="empty-state hidden"></p>
+  <button id="login-btn">Sign In</button>
+</div>
+
+<main id="dashboard-content" class="hidden">
   <div id="config-notice" class="config-notice hidden">
     Add your Supabase URL and anon key at the top of <code>dashboard/app.js</code> to load live data.
   </div>

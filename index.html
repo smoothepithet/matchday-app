@@ -14,10 +14,27 @@
   <div class="brand-strip">
     <span class="brand-mark">🚀</span>
     <span class="brand-name">WYRLEY ROCKETS</span>
+    <button type="button" class="logout-link hidden" id="logout-btn">Sign out</button>
   </div>
 
+  <!-- LOGIN SCREEN -->
+  <section id="login-screen" class="setup">
+    <h1 style="font-size:22px; margin:0 0 4px;">Coach Sign In</h1>
+    <p class="muted" style="margin:0; font-size:14px;">Sign in once per device — stays signed in for offline pitch-side use.</p>
+
+    <label for="login-email">Email</label>
+    <input id="login-email" type="email" autocomplete="username" />
+
+    <label for="login-password">Password</label>
+    <input id="login-password" type="password" autocomplete="current-password" />
+
+    <p class="muted hidden" id="login-error"></p>
+
+    <button class="start-btn" id="login-btn">Sign In</button>
+  </section>
+
   <!-- SETUP SCREEN -->
-  <section id="setup" class="setup">
+  <section id="setup" class="setup hidden">
     <h1 style="font-size:22px; margin:0 0 4px;">New Match</h1>
     <p class="muted" style="margin:0; font-size:14px;">Set this up pitch-side before kick-off.</p>
 
