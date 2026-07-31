@@ -414,6 +414,40 @@ if (getSession()) {
 }
 
 // ---------------------------------------------------------------
+// Resolve a squad member's name to their Supabase `players` row id,
+// creating the row on first sync if it doesn't exist yet. Cached
+// locally (name -> id) so repeat matches don't re-look-up every time.
+// ---------------------------------------------------------------
+async function resolvePlayerId(headers, name) {
+  if (!name) return null;
+
+  const cache = store.get("player_ids", {});
+  if (cache[name]) return cache[name];
+
+  const lookupRes = await fetch(
+    `${CONFIG.SUPABASE_URL}/rest/v1/players?name=eq.${encodeURIComponent(name)}&select=id&limit=1`,
+    { headers }
+  );
+  const existing = await lookupRes.json();
+  if (existing.length) {
+    cache[name] = existing[0].id;
+    store.set("player_ids", cache);
+    return existing[0].id;
+  }
+
+  const squadEntry = squad.find((p) => p.name === name);
+  const createRes = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/players`, {
+    method: "POST",
+    headers: { ...headers, Prefer: "return=representation" },
+    body: JSON.stringify({ name, squad_number: squadEntry?.number ?? null }),
+  });
+  const [created] = await createRes.json();
+  cache[name] = created.id;
+  store.set("player_ids", cache);
+  return created.id;
+}
+
+// ---------------------------------------------------------------
 // Sync to Supabase (best-effort; falls back to local queue)
 // ---------------------------------------------------------------
 async function syncMatch(m) {
@@ -453,17 +487,23 @@ async function syncMatch(m) {
     });
     const [savedMatch] = await matchRes.json();
 
-    const eventRows = m.events.flatMap((e) => {
-      const rows = [{
+    const eventRows = [];
+    for (const e of m.events) {
+      eventRows.push({
         match_id: savedMatch.id,
+        player_id: await resolvePlayerId(headers, e.player),
         event_type: e.type === "goal_them" ? "own_goal" : e.type,
         minute: e.minute,
-      }];
+      });
       if (e.assist) {
-        rows.push({ match_id: savedMatch.id, event_type: "assist", minute: e.minute });
+        eventRows.push({
+          match_id: savedMatch.id,
+          player_id: await resolvePlayerId(headers, e.assist),
+          event_type: "assist",
+          minute: e.minute,
+        });
       }
-      return rows;
-    });
+    }
 
     await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/events`, {
       method: "POST",

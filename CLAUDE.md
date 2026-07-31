@@ -75,23 +75,24 @@ Working:
   under `auth_session` and refreshed opportunistically; the recorder never
   blocks on a refresh failure (keeps working offline pitch-side), the
   dashboard bounces back to the login screen on a definite auth failure.
+- Player ID resolution: `resolvePlayerId()` in `recorder/app.js` looks up
+  (or creates) a `players` row by name during sync and attaches its id to
+  each event row, so `player_season_stats` actually populates per-player.
+  Resolved name→id pairs are cached in `localStorage` under `player_ids`.
 
 Known gaps (in priority order for next work):
-1. **Player ID resolution isn't wired up in the sync path.** `recorder/app.js`
-   sends event rows to Supabase without a `player_id` — the schema has the
-   column, but nothing populates it yet. Since squad is now a proper list of
-   `{id, name, number}` objects, this is a straightforward fix: look up the
-   matching `players` row (or create one on first sync) and attach its id to
-   each event. Do this before relying on the dashboard's per-player stats
-   for real matches.
-2. **No automated social posting.** Meta (Instagram/Facebook) requires app
+1. **No automated social posting.** Meta (Instagram/Facebook) requires app
    review + business verification; X posting requires a paid API tier.
    Current plan is manual copy-paste from the generated report — revisit
    only if this becomes a bigger multi-team tool.
 3. **No report image/template**, just text.
-4. Squad list is per-device (`localStorage`), not synced to Supabase yet —
-   fine for a single coach's phone, would need syncing if multiple people
-   use the recorder.
+4. Squad list is per-device (`localStorage`), not proactively synced to
+   Supabase — a `players` row only gets created lazily, the first time that
+   person is involved in a recorded event. A bench player who never scores/
+   assists/saves won't appear in the dashboard at all (not even as 0
+   appearances) until they do. Fine for a single coach's phone; would need
+   real syncing (and squad_number updates on existing rows) if multiple
+   people use the recorder or you want a full-squad appearances view.
 
 ## Conventions
 
@@ -124,6 +125,7 @@ it currently asserts against specific element IDs and button labels.
 
 ## Suggested next step
 
-Wire up player ID resolution in the sync path (gap #1 above) so the
-dashboard's per-player stats actually work end-to-end once real match data
-starts flowing in.
+Play a real match end-to-end (recorder → sync → dashboard) now that auth,
+RLS, and player ID resolution are all wired up, and confirm the per-player
+stats look right. After that, gap #1 above (social posting) is the next
+open item.
