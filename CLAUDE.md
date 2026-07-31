@@ -79,20 +79,25 @@ Working:
   (or creates) a `players` row by name during sync and attaches its id to
   each event row, so `player_season_stats` actually populates per-player.
   Resolved name→id pairs are cached in `localStorage` under `player_ids`.
+- Squad pull-sync: `syncSquadFromSupabase()` fetches `players` on
+  login/boot and merges it into the local squad by name (updates shirt
+  numbers, adds anyone missing locally) — a new device doesn't start
+  from an empty squad list.
 
 Known gaps (in priority order for next work):
 1. **No automated social posting.** Meta (Instagram/Facebook) requires app
    review + business verification; X posting requires a paid API tier.
    Current plan is manual copy-paste from the generated report — revisit
    only if this becomes a bigger multi-team tool.
-3. **No report image/template**, just text.
-4. Squad list is per-device (`localStorage`), not proactively synced to
-   Supabase — a `players` row only gets created lazily, the first time that
-   person is involved in a recorded event. A bench player who never scores/
-   assists/saves won't appear in the dashboard at all (not even as 0
-   appearances) until they do. Fine for a single coach's phone; would need
-   real syncing (and squad_number updates on existing rows) if multiple
-   people use the recorder or you want a full-squad appearances view.
+2. **No report image/template**, just text.
+3. Squad sync is one-way-lazy on the push side: `syncSquadFromSupabase()`
+   pulls the `players` table down into the local squad on every login/boot
+   (merging by name, so a new device doesn't need everyone re-typed in),
+   but a `players` row still only gets *created* lazily via
+   `resolvePlayerId()` the first time someone is involved in a recorded
+   event. A bench player who never scores/assists/saves won't appear on
+   the server (or in another coach's pulled-down squad) until they do.
+   Removing a player locally also doesn't deactivate their `players` row.
 
 ## Conventions
 

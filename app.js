@@ -148,6 +148,52 @@ function updateSquadCountBadge() {
 }
 
 // ---------------------------------------------------------------
+// Pull the squad down from Supabase's `players` table on login/boot,
+// so a coach signing in on a new device doesn't have to re-type
+// everyone. Merges by name — updates shirt numbers for players that
+// already exist locally, adds ones that don't, and never removes a
+// locally-added player who just hasn't synced yet (e.g. hasn't been
+// involved in a recorded event, so resolvePlayerId hasn't created
+// their `players` row on the server side yet).
+// ---------------------------------------------------------------
+async function syncSquadFromSupabase(session) {
+  try {
+    const headers = {
+      apikey: CONFIG.SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${session.access_token}`,
+    };
+    const res = await fetch(
+      `${CONFIG.SUPABASE_URL}/rest/v1/players?active=eq.true&select=name,squad_number&order=squad_number.asc`,
+      { headers }
+    );
+    if (!res.ok) return;
+    const remotePlayers = await res.json();
+
+    const byName = new Map(squad.map((p) => [p.name, p]));
+    let changed = false;
+    for (const rp of remotePlayers) {
+      const local = byName.get(rp.name);
+      if (local) {
+        if (local.number !== rp.squad_number) {
+          local.number = rp.squad_number;
+          changed = true;
+        }
+      } else {
+        squad.push({ id: crypto.randomUUID(), name: rp.name, number: rp.squad_number });
+        changed = true;
+      }
+    }
+    if (changed) {
+      store.set("squad", squad);
+      renderSquadList();
+      updateSquadCountBadge();
+    }
+  } catch (err) {
+    console.error("Squad sync from Supabase failed:", err);
+  }
+}
+
+// ---------------------------------------------------------------
 // Clock (minutes only — good enough for a match report)
 // ---------------------------------------------------------------
 function startClock() {
@@ -388,10 +434,11 @@ document.getElementById("login-btn").addEventListener("click", async () => {
   const email = document.getElementById("login-email").value.trim();
   const password = document.getElementById("login-password").value;
   try {
-    await signIn(email, password);
+    const session = await signIn(email, password);
     errorEl.classList.add("hidden");
     showApp();
     initApp();
+    syncSquadFromSupabase(session);
   } catch (err) {
     errorEl.textContent = err.message;
     errorEl.classList.remove("hidden");
@@ -404,11 +451,14 @@ document.getElementById("logout-btn").addEventListener("click", () => {
 });
 
 // Boot: already-signed-in devices skip straight to the app (and get a
-// fire-and-forget token refresh); everyone else sees the login screen.
+// fire-and-forget token refresh + squad sync); everyone else sees the
+// login screen.
 if (getSession()) {
   showApp();
   initApp();
-  ensureFreshSession();
+  ensureFreshSession().then((session) => {
+    if (session) syncSquadFromSupabase(session);
+  });
 } else {
   showLogin();
 }
