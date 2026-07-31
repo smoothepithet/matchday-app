@@ -342,7 +342,7 @@ function initApp() {
     renderLog();
   });
 
-  document.getElementById("btn-end-match").addEventListener("click", () => {
+  document.getElementById("btn-end-match").addEventListener("click", async () => {
     if (!confirm("End the match? This locks in the final score.")) return;
     clearInterval(clockInterval);
     match.status = "completed";
@@ -351,7 +351,11 @@ function initApp() {
     archive.push(match);
     store.set("matches_archive", archive);
 
-    syncMatch(match);
+    // Must await this before reloading — otherwise the reload can tear
+    // down the page mid-sync, after the match row is posted but before
+    // the events POST (which only runs after that first response
+    // resolves) ever gets a chance to fire.
+    await syncMatch(match);
 
     alert(`Final score saved: ${CONFIG.TEAM_NAME} ${match.our_score} – ${match.their_score} ${match.opposition}`);
     window.location.reload();
