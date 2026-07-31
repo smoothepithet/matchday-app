@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Wyrley Rockets — Matchday</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#000000" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="app">
+
+  <div class="brand-strip">
+    <span class="brand-mark">🚀</span>
+    <span class="brand-name">WYRLEY ROCKETS</span>
+  </div>
+
+  <!-- SETUP SCREEN -->
+  <section id="setup" class="setup">
+    <h1 style="font-size:22px; margin:0 0 4px;">New Match</h1>
+    <p class="muted" style="margin:0; font-size:14px;">Set this up pitch-side before kick-off.</p>
+
+    <label for="opposition">Opposition</label>
+    <input id="opposition" type="text" placeholder="e.g. Riverside Rovers U10" />
+
+    <label for="match-date">Date</label>
+    <input id="match-date" type="date" />
+
+    <label for="venue">Venue</label>
+    <select id="venue">
+      <option value="home">Home</option>
+      <option value="away">Away</option>
+    </select>
+
+    <label for="competition">Competition</label>
+    <input id="competition" type="text" placeholder="League / Cup / Friendly" />
+
+    <label>Squad</label>
+    <button type="button" class="squad-link-btn" id="manage-squad-btn">
+      Manage Squad <span id="squad-count-badge">(0 players)</span> →
+    </button>
+
+    <button class="start-btn" id="start-match-btn">Kick Off</button>
+  </section>
+
+  <!-- SQUAD MANAGEMENT SCREEN -->
+  <section id="squad-screen" class="squad-screen hidden">
+    <div class="squad-header">
+      <button class="back-btn" id="squad-back-btn">← Back</button>
+      <h1 style="font-size:20px; margin:0;">Player Profiles</h1>
+    </div>
+
+    <div class="add-player-row">
+      <input id="new-player-name" type="text" placeholder="Player name" />
+      <input id="new-player-number" type="number" placeholder="#" min="1" max="99" />
+      <button class="add-player-btn" id="add-player-btn">Add</button>
+    </div>
+
+    <div id="squad-list" class="squad-list"></div>
+    <p class="squad-empty muted hidden" id="squad-empty">No players yet — add your squad above. This is saved on this device and reused every match.</p>
+  </section>
+
+  <!-- MATCH SCREEN -->
+  <section id="match-screen" class="hidden" style="display:flex; flex-direction:column; flex:1;">
+    <div class="scoreboard">
+      <div class="fixture" id="fixture-label">Wyrley Rockets vs Them</div>
+      <div class="score-row">
+        <div class="digits" id="score-us">0</div>
+        <div class="versus">–</div>
+        <div class="digits" id="score-them">0</div>
+      </div>
+      <div class="clock" id="match-clock">00:00</div>
+    </div>
+
+    <div class="actions">
+      <button class="action-btn goal-us" id="btn-goal-us">🚀 Goal (Us)</button>
+      <button class="action-btn save" id="btn-save">🧤 Save</button>
+      <button class="action-btn goal-them" id="btn-goal-them">Goal (Them)</button>
+      <button class="action-btn end-match" id="btn-end-match">End Match</button>
+    </div>
+
+    <div class="log">
+      <h2>Match Events</h2>
+      <div id="event-log"></div>
+    </div>
+
+    <div class="sync-status" id="sync-status">Saved on this device — will sync when online</div>
+  </section>
+
+  <!-- PLAYER PICKER SHEET -->
+  <div class="sheet-backdrop hidden" id="picker-backdrop">
+    <div class="sheet">
+      <h3 id="picker-title">Who scored?</h3>
+      <div id="picker-list"></div>
+      <button class="sheet-skip" id="picker-skip">Skip / Unknown</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

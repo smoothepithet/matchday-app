@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Wyrley Rockets — Matchday Preview</title>
+<style>
+:root {
+  --void: #000000; --panel: #161616; --white: #ffffff; --silver: #b5b5b5; --steel: #2a2a2a; --steel-light: #3d3d3d;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #d8d8d8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+.phone-frame { max-width: 400px; margin: 24px auto; border-radius: 36px; background: #111; padding: 14px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
+.app { background: var(--void); color: var(--white); border-radius: 24px; overflow: hidden; min-height: 700px; display: flex; flex-direction: column; position: relative; }
+.muted { color: var(--silver); }
+.brand-strip { background: repeating-linear-gradient(135deg, #0a0a0a 0px, #0a0a0a 18px, #000000 18px, #000000 36px); border-bottom: 1px solid var(--steel); padding: 10px 16px; display: flex; align-items: center; gap: 8px; }
+.brand-mark { font-size: 16px; transform: rotate(45deg); display: inline-block; }
+.brand-name { font-size: 13px; font-weight: 800; letter-spacing: 0.18em; color: var(--white); }
+.scoreboard { background: var(--panel); border-bottom: 3px solid var(--white); padding: 18px 16px 22px; text-align: center; position: relative; }
+.scoreboard::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: repeating-linear-gradient(90deg, var(--white) 0 10px, transparent 10px 20px); opacity: 0.5; }
+.scoreboard .fixture { font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--silver); margin-bottom: 10px; font-weight: 600; }
+.scoreboard .score-row { display: flex; align-items: center; justify-content: center; gap: 18px; }
+.scoreboard .digits { font-family: "Courier New", Courier, monospace; font-variant-numeric: tabular-nums; font-weight: 700; font-size: 56px; color: var(--white); text-shadow: 0 0 14px rgba(255,255,255,0.35); min-width: 1.2em; }
+.scoreboard .versus { font-size: 20px; color: var(--silver); font-weight: 700; }
+.scoreboard .clock { margin-top: 10px; font-family: "Courier New", Courier, monospace; font-size: 15px; color: var(--silver); letter-spacing: 0.08em; }
+.actions { padding: 20px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.action-btn { border: none; border-radius: 14px; padding: 26px 12px; font-size: 18px; font-weight: 800; letter-spacing: 0.02em; text-transform: uppercase; cursor: pointer; transition: transform 0.08s ease, filter 0.15s ease; }
+.action-btn:active { transform: scale(0.96); filter: brightness(0.85); }
+.action-btn.goal-us { background: var(--white); color: var(--void); grid-column: span 2; }
+.action-btn.save { background: var(--steel); color: var(--white); border: 1px solid var(--steel-light); }
+.action-btn.goal-them { background: var(--void); color: var(--white); border: 2px dashed var(--silver); }
+.action-btn.end-match { background: transparent; color: var(--silver); border: 1px solid var(--silver); grid-column: span 2; font-weight: 700; }
+.log { flex: 1; padding: 4px 16px 24px; overflow-y: auto; max-height: 180px; }
+.log h2 { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--silver); margin: 12px 0 8px; }
+.log-entry { display: flex; align-items: center; gap: 10px; background: var(--panel); border: 1px solid var(--steel); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; font-size: 15px; }
+.log-entry .minute { font-family: "Courier New", monospace; color: var(--white); font-weight: 700; min-width: 34px; }
+.log-entry .undo { margin-left: auto; background: none; border: none; color: var(--silver); font-size: 13px; text-decoration: underline; cursor: pointer; }
+.sync-status { text-align: center; font-size: 12px; color: var(--silver); padding: 6px 0 14px; }
+.sheet-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: flex-end; z-index: 20; border-radius: 24px; }
+.sheet-backdrop.hidden { display: none; }
+.sheet { background: var(--white); color: var(--void); width: 100%; border-radius: 18px 18px 0 0; padding: 20px 16px 24px; max-height: 70%; overflow-y: auto; }
+.sheet h3 { margin: 0 0 14px; font-size: 15px; text-transform: uppercase; letter-spacing: 0.1em; color: #666; }
+.player-option { width: 100%; text-align: left; padding: 14px 12px; border: none; border-bottom: 1px solid rgba(0,0,0,0.08); background: none; font-size: 17px; font-weight: 600; color: var(--void); cursor: pointer; display: flex; align-items: center; gap: 10px; }
+.player-option .number-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 26px; border-radius: 6px; background: var(--void); color: var(--white); font-size: 13px; font-weight: 800; }
+.player-option:active { background: rgba(0,0,0,0.06); }
+.sheet-skip { width: 100%; margin-top: 10px; padding: 14px; border-radius: 10px; border: none; background: var(--void); color: var(--white); font-weight: 700; cursor: pointer; }
+.setup { padding: 24px 20px; }
+.setup label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--silver); margin: 16px 0 6px; }
+.setup input, .setup select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--steel-light); background: var(--panel); color: var(--white); font-size: 16px; }
+.setup .start-btn { margin-top: 26px; width: 100%; padding: 16px; border-radius: 12px; border: none; background: var(--white); color: var(--void); font-weight: 800; font-size: 17px; text-transform: uppercase; cursor: pointer; }
+.squad-link-btn { width: 100%; padding: 14px 12px; border-radius: 10px; border: 1px dashed var(--silver); background: transparent; color: var(--white); font-size: 15px; font-weight: 700; text-align: left; cursor: pointer; }
+.squad-screen { padding: 20px 20px 24px; flex: 1; display: flex; flex-direction: column; }
+.squad-header { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.back-btn { background: none; border: none; color: var(--white); font-size: 15px; font-weight: 700; cursor: pointer; padding: 0; }
+.add-player-row { display: flex; gap: 8px; margin-bottom: 18px; }
+.add-player-row input { padding: 12px; border-radius: 10px; border: 1px solid var(--steel-light); background: var(--panel); color: var(--white); font-size: 15px; }
+#new-player-name { flex: 1; min-width: 0; }
+#new-player-number { width: 64px; }
+.add-player-btn { padding: 12px 16px; border-radius: 10px; border: none; background: var(--white); color: var(--void); font-weight: 800; cursor: pointer; }
+.squad-list { flex: 1; overflow-y: auto; }
+.squad-item { display: flex; align-items: center; gap: 12px; background: var(--panel); border: 1px solid var(--steel); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; }
+.squad-item .number-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 30px; height: 30px; border-radius: 8px; background: var(--white); color: var(--void); font-weight: 800; font-size: 14px; }
+.squad-item .player-name { flex: 1; font-size: 16px; font-weight: 600; }
+.squad-item .remove-btn { background: none; border: none; color: var(--silver); font-size: 13px; text-decoration: underline; cursor: pointer; }
+.squad-empty { font-size: 14px; padding: 16px 4px; line-height: 1.5; }
+.hidden { display: none !important; }
+.caption { text-align: center; color: #555; font-size: 13px; margin-top: -8px; padding-bottom: 20px; }
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <div class="app">
+
+    <div class="brand-strip">
+      <span class="brand-mark">🚀</span>
+      <span class="brand-name">WYRLEY ROCKETS</span>
+    </div>
+
+    <section id="setup" class="setup">
+      <h1 style="font-size:22px; margin:0 0 4px;">New Match</h1>
+      <p class="muted" style="margin:0; font-size:14px;">Set this up pitch-side before kick-off.</p>
+      <label>Opposition</label>
+      <input id="opposition" type="text" value="Riverside Rovers U10" />
+      <label>Venue</label>
+      <select id="venue"><option value="home" selected>Home</option><option value="away">Away</option></select>
+      <label>Squad</label>
+      <button type="button" class="squad-link-btn" id="manage-squad-btn">Manage Squad <span id="squad-count-badge">(5 players)</span> →</button>
+      <button class="start-btn" id="start-match-btn">Kick Off</button>
+    </section>
+
+    <section id="squad-screen" class="squad-screen hidden">
+      <div class="squad-header">
+        <button class="back-btn" id="squad-back-btn">← Back</button>
+        <h1 style="font-size:20px; margin:0;">Player Profiles</h1>
+      </div>
+      <div class="add-player-row">
+        <input id="new-player-name" type="text" placeholder="Player name" />
+        <input id="new-player-number" type="number" placeholder="#" min="1" max="99" />
+        <button class="add-player-btn" id="add-player-btn">Add</button>
+      </div>
+      <div id="squad-list" class="squad-list"></div>
+    </section>
+
+    <section id="match-screen" class="hidden" style="display:flex; flex-direction:column; flex:1;">
+      <div class="scoreboard">
+        <div class="fixture" id="fixture-label">Wyrley Rockets vs Them</div>
+        <div class="score-row">
+          <div class="digits" id="score-us">0</div>
+          <div class="versus">–</div>
+          <div class="digits" id="score-them">0</div>
+        </div>
+        <div class="clock" id="match-clock">12:00</div>
+      </div>
+      <div class="actions">
+        <button class="action-btn goal-us" id="btn-goal-us">🚀 Goal (Us)</button>
+        <button class="action-btn save" id="btn-save">🧤 Save</button>
+        <button class="action-btn goal-them" id="btn-goal-them">Goal (Them)</button>
+        <button class="action-btn end-match" id="btn-end-match">End Match</button>
+      </div>
+      <div class="log">
+        <h2>Match Events</h2>
+        <div id="event-log"></div>
+      </div>
+      <div class="sync-status" id="sync-status">Saved on this device — will sync when online</div>
+    </section>
+
+    <div class="sheet-backdrop hidden" id="picker-backdrop">
+      <div class="sheet">
+        <h3 id="picker-title">Who scored?</h3>
+        <div id="picker-list"></div>
+        <button class="sheet-skip" id="picker-skip">Skip / Unknown</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+<p class="caption">Interactive preview — try Manage Squad, then Kick Off, then Goal / Save / End Match</p>
+
+<script>
+let squad = [
+  { id: "1", name: "Alfie", number: 9 },
+  { id: "2", name: "Ben", number: 7 },
+  { id: "3", name: "Zara", number: 10 },
+  { id: "4", name: "Priya", number: 1 },
+  { id: "5", name: "Sam", number: 4 },
+];
+let match = null;
+let pendingAction = null;
+let minuteCounter = 12;
+
+function renderSquadList() {
+  const list = document.getElementById("squad-list");
+  list.innerHTML = "";
+  squad.slice().sort((a,b) => (a.number??99)-(b.number??99)).forEach(p => {
+    const row = document.createElement("div");
+    row.className = "squad-item";
+    row.innerHTML = `<span class="number-badge">${p.number ?? "-"}</span><span class="player-name">${p.name}</span><button class="remove-btn" data-id="${p.id}">remove</button>`;
+    list.appendChild(row);
+  });
+  list.querySelectorAll(".remove-btn").forEach(btn => btn.addEventListener("click", () => {
+    squad = squad.filter(p => p.id !== btn.dataset.id);
+    renderSquadList(); updateBadge();
+  }));
+}
+function updateBadge() {
+  document.getElementById("squad-count-badge").textContent = `(${squad.length} player${squad.length===1?"":"s"})`;
+}
+document.getElementById("add-player-btn").addEventListener("click", () => {
+  const nameInput = document.getElementById("new-player-name");
+  const numberInput = document.getElementById("new-player-number");
+  const name = nameInput.value.trim();
+  if (!name) return;
+  squad.push({ id: crypto.randomUUID(), name, number: numberInput.value ? parseInt(numberInput.value,10) : null });
+  nameInput.value = ""; numberInput.value = ""; nameInput.focus();
+  renderSquadList(); updateBadge();
+});
+document.getElementById("manage-squad-btn").addEventListener("click", () => {
+  document.getElementById("setup").classList.add("hidden");
+  document.getElementById("squad-screen").classList.remove("hidden");
+});
+document.getElementById("squad-back-btn").addEventListener("click", () => {
+  document.getElementById("squad-screen").classList.add("hidden");
+  document.getElementById("setup").classList.remove("hidden");
+});
+renderSquadList(); updateBadge();
+
+document.getElementById("start-match-btn").addEventListener("click", () => {
+  const opposition = document.getElementById("opposition").value.trim() || "Opposition";
+  const venue = document.getElementById("venue").value;
+  match = { opposition, venue, our_score: 0, their_score: 0, events: [] };
+  document.getElementById("setup").classList.add("hidden");
+  document.getElementById("match-screen").classList.remove("hidden");
+  document.getElementById("fixture-label").textContent =
+    venue === "home" ? `Wyrley Rockets vs ${opposition}` : `${opposition} vs Wyrley Rockets`;
+  renderScore(); renderLog();
+});
+function renderScore() {
+  document.getElementById("score-us").textContent = match.our_score;
+  document.getElementById("score-them").textContent = match.their_score;
+}
+function describeEvent(e) {
+  if (e.type === "goal") return e.assist ? `Goal — ${e.player} (assist: ${e.assist})` : `Goal — ${e.player || "Unknown"}`;
+  if (e.type === "goal_them") return "Goal conceded";
+  if (e.type === "save") return `Save — ${e.player || "Unknown"}`;
+}
+function renderLog() {
+  const log = document.getElementById("event-log");
+  log.innerHTML = "";
+  [...match.events].reverse().forEach(e => {
+    const row = document.createElement("div");
+    row.className = "log-entry";
+    row.innerHTML = `<span class="minute">${e.minute}'</span><span>${describeEvent(e)}</span><button class="undo" data-id="${e.id}">undo</button>`;
+    log.appendChild(row);
+  });
+  log.querySelectorAll(".undo").forEach(btn => btn.addEventListener("click", () => undo(btn.dataset.id)));
+}
+function undo(id) {
+  const idx = match.events.findIndex(e => e.id === id);
+  if (idx === -1) return;
+  const [removed] = match.events.splice(idx, 1);
+  if (removed.type === "goal") match.our_score--;
+  if (removed.type === "goal_them") match.their_score--;
+  renderScore(); renderLog();
+}
+function openPicker(title, onPick) {
+  pendingAction = onPick;
+  document.getElementById("picker-title").textContent = title;
+  const list = document.getElementById("picker-list");
+  list.innerHTML = "";
+  squad.slice().sort((a,b)=>(a.number??99)-(b.number??99)).forEach(p => {
+    const btn = document.createElement("button");
+    btn.className = "player-option";
+    btn.innerHTML = `<span class="number-badge">${p.number ?? "-"}</span><span>${p.name}</span>`;
+    btn.addEventListener("click", () => { closePicker(); onPick(p.name); });
+    list.appendChild(btn);
+  });
+  document.getElementById("picker-backdrop").classList.remove("hidden");
+}
+function closePicker() { document.getElementById("picker-backdrop").classList.add("hidden"); }
+document.getElementById("picker-skip").addEventListener("click", () => { closePicker(); if (pendingAction) pendingAction(null); });
+document.getElementById("btn-goal-us").addEventListener("click", () => {
+  match.our_score++; renderScore();
+  openPicker("Who scored?", scorer => {
+    const event = { id: crypto.randomUUID(), type: "goal", player: scorer, assist: null, minute: minuteCounter++ };
+    match.events.push(event); renderLog();
+    if (scorer) openPicker("Assist? (optional)", assister => { event.assist = assister; renderLog(); });
+  });
+});
+document.getElementById("btn-save").addEventListener("click", () => {
+  openPicker("Who made the save?", keeper => {
+    match.events.push({ id: crypto.randomUUID(), type: "save", player: keeper, minute: minuteCounter++ });
+    renderLog();
+  });
+});
+document.getElementById("btn-goal-them").addEventListener("click", () => {
+  match.their_score++;
+  match.events.push({ id: crypto.randomUUID(), type: "goal_them", player: null, minute: minuteCounter++ });
+  renderScore(); renderLog();
+});
+document.getElementById("btn-end-match").addEventListener("click", () => {
+  document.getElementById("sync-status").textContent = `Final: Wyrley Rockets ${match.our_score} – ${match.their_score} ${match.opposition}. Saved ✓`;
+});
+</script>
+</body>
+</html>

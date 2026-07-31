@@ -1,0 +1,23 @@
+# Node (test_recorder.js uses jsdom)
+node_modules/
+npm-debug.log*
+package-lock.json
+
+# Python (generate_report.py / anthropic / requests)
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# Env files / secrets (SUPABASE_URL, SUPABASE_ANON_KEY, ANTHROPIC_API_KEY, etc.)
+.env
+.env.*
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
