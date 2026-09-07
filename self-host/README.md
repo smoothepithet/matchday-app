@@ -60,6 +60,17 @@ with an empty `./data/postgres` directory**. If you need to change the
 schema later, apply changes manually via `psql` — restarting the
 container won't re-run these scripts.
 
+If `gotrue` fails on its first attempt (e.g. a migration error) and you
+fix something in `init/00-roles.sh` or `schema.sql`, restarting alone
+won't pick up the fix — `postgres` already has a non-empty data
+directory from the failed attempt, so it skips the init scripts
+entirely. Wipe it and start clean:
+```bash
+docker compose down
+rm -rf ./data/postgres/*
+docker compose up -d
+```
+
 `postgrest` and `gotrue` are pinned to specific versions (`v16.2` and
 `v2.196.0` respectively, current as of when this was written — note that
 `supabase/gotrue` doesn't publish a `latest` tag at all, only versioned

@@ -7,9 +7,17 @@
 # will fail if these roles don't already exist, so this must run first —
 # the "00-" filename prefix guarantees that (initdb.d runs files in
 # alphabetical order).
+#
+# Also creates the "auth" schema GoTrue's own migrations expect to
+# already exist (CREATE TABLE auth.users ... fails otherwise, even for a
+# superuser — Postgres won't auto-create a missing schema). Real
+# Supabase deployments get this from their custom Postgres image; plain
+# postgres:16-alpine needs it done explicitly.
 set -e
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+  create schema if not exists auth;
+
   create role anon nologin noinherit;
   create role authenticated nologin noinherit;
   create role authenticator noinherit login password '$AUTHENTICATOR_PASSWORD';
