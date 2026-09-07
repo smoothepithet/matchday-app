@@ -13,7 +13,7 @@ changes are needed, only `CONFIG` values.
 - Traefik already running and watching some Docker network (`docker
   network ls` to find its name).
 - A local DNS override that resolves your chosen hostname (e.g.
-  `matchday.yourdomain.com`) to your Unraid box's LAN IP — the same
+  `api.wyrleyrockets.uk`) to your Unraid box's LAN IP — the same
   hostname you'll later point a Cloudflare Tunnel public hostname at, so
   this step never needs to change.
 
@@ -90,7 +90,7 @@ In both `app.js` and `dashboard/app.js`:
 ```js
 const CONFIG = {
   TEAM_NAME: "Wyrley Rockets",
-  SUPABASE_URL: "https://matchday.yourdomain.com",
+  SUPABASE_URL: "https://api.wyrleyrockets.uk",
   SUPABASE_ANON_KEY: "<anon key from step 4>",
 };
 ```
@@ -121,3 +121,12 @@ When ready to go beyond your LAN: add `APP_HOSTNAME` as a Public Hostname
 in your existing Cloudflare Tunnel config, pointed at the same place your
 other Traefik-routed services are (e.g. `http://traefik:80`). Nothing
 else changes — same hostname, same containers, same `.env`.
+
+## 10. Frontend custom domain (GitHub Pages)
+
+This backend is one half of moving the whole project onto
+`wyrleyrockets.uk` — the other half is the recorder/dashboard, which stay
+on GitHub Pages but under the custom domain instead of the `github.io`
+URL. That's handled separately (a `CNAME` file at the repo root, plus DNS
+records in Cloudflare pointing the apex domain at GitHub's Pages IPs) —
+see the root `CLAUDE.md` for the current state of that migration.

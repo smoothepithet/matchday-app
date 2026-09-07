@@ -52,6 +52,33 @@ Scoreboard digits use `"Courier New"` monospace for a tabular LED-display feel.
 Signature element: the live scoreline renders like a stadium scoreboard —
 dark panel, large tabular digits, dashed/striped border details.
 
+## Domain migration (in progress)
+
+Supabase's free-tier project got paused. Rather than upgrade to Pro,
+decided to self-host the backend (Postgres + PostgREST + GoTrue — the
+same open-source pieces Supabase Cloud runs) on the coach's Unraid box,
+behind an existing Traefik instance and Cloudflare Tunnel, rather than
+pay for AWS/DigitalOcean/Supabase Pro. See `self-host/README.md` for the
+full stack and setup steps — status as of this writing: files are
+written, stack has not yet been run/tested.
+
+Also bought `wyrleyrockets.uk` to move the whole project off ad-hoc URLs
+onto one domain:
+- apex (`wyrleyrockets.uk`) → GitHub Pages, same repo/paths as today
+  (recorder at `/`, dashboard at `/dashboard/`). A `CNAME` file has been
+  added to the repo root for this; DNS (A records at the apex pointing to
+  GitHub's Pages IPs, added as DNS-only/grey-cloud in Cloudflare so
+  GitHub's Let's Encrypt cert can validate) and enabling "Enforce HTTPS"
+  in the repo's Pages settings are still outstanding, done outside this
+  repo.
+- `api.wyrleyrockets.uk` → Cloudflare Tunnel → the self-hosted backend
+  above.
+
+Once the self-hosted stack is confirmed working, `CONFIG.SUPABASE_URL`
+and `CONFIG.SUPABASE_ANON_KEY` in both `app.js` and `dashboard/app.js`
+need updating (currently still point at the paused Supabase project) —
+see `self-host/README.md` steps 4-6 for minting the new anon key.
+
 ## Data model (`schema.sql`)
 
 - `players` — `name`, `squad_number`, `active`
