@@ -6,22 +6,25 @@ it has the full design system, data model, and known-gaps list.
 Three pieces that share one Supabase database:
 
 ```
-recorder/           Match-day PWA — install to a phone, record events pitch-side, works offline
-dashboard/           Private season-stats page — top scorers, assists, saves, results log
-report-generator/    Python script that turns a match's events into a social-media-ready report
-supabase/schema.sql  Database schema — run this first
+index.html, app.js, styles.css   Match-day recorder PWA — install to a phone, record events
+                                  pitch-side, works offline
+dashboard/                       Private season-stats page — top scorers, assists, saves,
+                                  results log
+generate_report.py               Python script that turns a match's events into a
+                                  social-media-ready report
+schema.sql                       Database schema — run this first
 ```
 
 ## 1. Set up the database
 
 1. Create a free project at supabase.com
-2. In the SQL editor, run `supabase/schema.sql`
+2. In the SQL editor, run `schema.sql`
 3. Copy your project URL and anon key from Settings → API
 
 ## 2. Configure the apps
 
 Paste your Supabase URL + anon key into:
-- `recorder/app.js` (top of file, `CONFIG`)
+- `app.js` (top of file, `CONFIG`)
 - `dashboard/app.js` (top of file, `CONFIG`)
 
 ## 3. Create the coach login
@@ -37,7 +40,7 @@ enough for a single-team app):
 
 ## 4. Try the recorder
 
-Open `recorder/index.html` on a phone (host it somewhere simple — GitHub Pages
+Open `index.html` on a phone (host it somewhere simple — GitHub Pages
 works well and is free), sign in with the coach account, and add it to your
 home screen for the full app-like feel. It works fully offline once signed
 in; events queue locally and sync automatically once you're back on signal.
@@ -52,7 +55,6 @@ build other views later (e.g. a league table).
 ## 6. Generate a match report
 
 ```bash
-cd report-generator
 pip install anthropic requests
 export SUPABASE_URL="..."
 export SUPABASE_ANON_KEY="..."
@@ -65,11 +67,6 @@ see the note on social APIs below.
 
 ## Known limitations / next steps
 
-- **Player ID resolution isn't wired up yet.** The recorder now has proper
-  player profiles (name + shirt number, added once via "Manage Squad" and
-  reused every match), but the sync step still sends player *names* to
-  Supabase rather than looking up/creating matching rows in the `players`
-  table. Worth fixing before relying on the dashboard's per-player stats.
 - **No automated social posting.** Instagram/Facebook require Meta app review
   and business verification; X requires a paid API tier for posting. Given
   the overhead for a grassroots team, manual copy-paste is the pragmatic v1.

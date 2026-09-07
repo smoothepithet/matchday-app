@@ -8,13 +8,24 @@ A stats app for a kids' grassroots football team, **Wyrley Rockets** (team
 colours: black & white). Three pieces sharing one Supabase database:
 
 ```
-recorder/           Match-day PWA — install to a phone, record events pitch-side, works offline
-dashboard/           Private season-stats page — top scorers, assists, saves, results log
-report-generator/    Python script that turns a match's events into a social-media-ready report
-supabase/schema.sql  Database schema — source of truth for the data model
-preview.html         Standalone demo build with in-memory state (no localStorage/Supabase) —
-                     used to show the UI quickly; NOT the deployable app, don't treat it as one
+index.html, app.js, styles.css   Match-day recorder PWA — install to a phone, record events
+                                  pitch-side, works offline
+dashboard/                       Private season-stats page — top scorers, assists, saves,
+                                  results log
+generate_report.py               Python script that turns a match's events into a
+                                  social-media-ready report
+schema.sql                       Database schema — source of truth for the data model, run
+                                  this first
+preview.html                     Standalone demo build with in-memory state (no
+                                  localStorage/Supabase) — used to show the UI quickly; NOT
+                                  the deployable app, don't treat it as one
 ```
+
+Note: the recorder, report generator, and schema have always lived at the
+repo root (never in `recorder/`, `report-generator/`, or `supabase/`
+subfolders, despite what older drafts of this file said). Only the
+dashboard was ever moved — from a nested build-output path into its own
+top-level `dashboard/` folder.
 
 ## Design system
 
@@ -23,7 +34,7 @@ Rocket-launch motif carried through small touches (🚀 emoji, diagonal
 "vapour trail" stripe texture on the brand strip and scoreboard top border,
 chevron/dashed borders) rather than literal rocket illustrations.
 
-Tokens (defined at the top of `recorder/styles.css`, duplicated inline in
+Tokens (defined at the top of `styles.css`, duplicated inline in
 `dashboard/index.html` and `preview.html` — keep all three in sync if you
 change them):
 
@@ -41,7 +52,7 @@ Scoreboard digits use `"Courier New"` monospace for a tabular LED-display feel.
 Signature element: the live scoreline renders like a stadium scoreboard —
 dark panel, large tabular digits, dashed/striped border details.
 
-## Data model (`supabase/schema.sql`)
+## Data model (`schema.sql`)
 
 - `players` — `name`, `squad_number`, `active`
 - `matches` — `opposition`, `match_date`, `venue` (home/away), `competition`,
@@ -75,9 +86,9 @@ Working:
   under `auth_session` and refreshed opportunistically; the recorder never
   blocks on a refresh failure (keeps working offline pitch-side), the
   dashboard bounces back to the login screen on a definite auth failure.
-- Player ID resolution: `resolvePlayerId()` in `recorder/app.js` looks up
-  (or creates) a `players` row by name during sync and attaches its id to
-  each event row, so `player_season_stats` actually populates per-player.
+- Player ID resolution: `resolvePlayerId()` in `app.js` looks up (or
+  creates) a `players` row by name during sync and attaches its id to each
+  event row, so `player_season_stats` actually populates per-player.
   Resolved name→id pairs are cached in `localStorage` under `player_ids`.
 - Squad pull-sync: `syncSquadFromSupabase()` fetches `players` on
   login/boot and merges it into the local squad by name (updates shirt
@@ -98,6 +109,11 @@ Known gaps (in priority order for next work):
    event. A bench player who never scores/assists/saves won't appear on
    the server (or in another coach's pulled-down squad) until they do.
    Removing a player locally also doesn't deactivate their `players` row.
+4. **No automated tests exist.** Earlier drafts of this file referenced a
+   `test_recorder.js` (jsdom-based, driving squad setup → kickoff →
+   goal/assist/save → undo → end match) but it was never committed — the
+   `.gitignore`'s Node/jsdom entries are the only trace of it. If test
+   coverage is wanted, it needs to be written from scratch.
 
 ## Conventions
 
@@ -108,25 +124,21 @@ Known gaps (in priority order for next work):
   dashboard (this is a real deployable app, not a Claude.ai artifact — the
   usual "no localStorage" restriction doesn't apply here).
 - Supabase config (`SUPABASE_URL`, `SUPABASE_ANON_KEY`) lives as a `CONFIG`
-  object at the top of `recorder/app.js` and `dashboard/app.js`. Same values
-  go in both places.
+  object at the top of `app.js` and `dashboard/app.js`. Same values go in
+  both places.
 - The auth helper (`getSession`/`setSession`/`clearSession`/`signIn`/
   `refreshSession`/`ensureFreshSession`) is duplicated verbatim in both
   `app.js` files, same convention as `CONFIG` — no shared module, since
   there's no build step. Keep both copies in sync if this logic changes.
-- Team name lives as `CONFIG.TEAM_NAME` in `recorder/app.js` and
-  `TEAM_NAME` in `report-generator/generate_report.py` — update both if the
-  team name ever changes.
+- Team name lives as `CONFIG.TEAM_NAME` in `app.js` and `TEAM_NAME` in
+  `generate_report.py` — update both if the team name ever changes.
 
 ## Testing
 
-There's a headless test at the project root's parent
-(`test_recorder.js`, uses `jsdom`) that drives the recorder through a full
-match: squad setup → kickoff → goal+assist → save → conceded goal → undo →
-end match → checks `localStorage` persistence and the offline sync queue.
-Run with `node test_recorder.js` (needs `npm install jsdom` once). Update
-this test alongside any changes to the recorder's DOM structure or flow —
-it currently asserts against specific element IDs and button labels.
+No automated tests currently exist in this repo (see known gap #4 above).
+Verify changes manually: open `index.html` for the recorder and
+`dashboard/index.html` for the dashboard directly in a browser, or via the
+deployed GitHub Pages site.
 
 ## Suggested next step
 
