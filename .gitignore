@@ -13,6 +13,11 @@ env/
 # Env files / secrets (SUPABASE_URL, SUPABASE_ANON_KEY, ANTHROPIC_API_KEY, etc.)
 .env
 .env.*
+!.env.example
+
+# Self-hosted stack (self-host/README.md) — bind-mounted Postgres data,
+# never the actual database files
+self-host/data/
 
 # OS cruft
 .DS_Store

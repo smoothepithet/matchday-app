@@ -1,0 +1,73 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-matchday}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      AUTHENTICATOR_PASSWORD: ${AUTHENTICATOR_PASSWORD}
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./init/00-roles.sh:/docker-entrypoint-initdb.d/00-roles.sh:ro
+      - ../schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    networks:
+      - matchday
+
+  postgrest:
+    image: postgrest/postgrest:latest
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${AUTHENTICATOR_PASSWORD}@postgres:5432/${POSTGRES_DB:-matchday}
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_JWT_AUD: authenticated
+    networks:
+      - matchday
+      - traefik
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${TRAEFIK_NETWORK}
+      - traefik.http.routers.matchday-rest.rule=Host(`${APP_HOSTNAME}`) && PathPrefix(`/rest/v1`)
+      - traefik.http.routers.matchday-rest.entrypoints=web
+      - traefik.http.middlewares.matchday-rest-strip.stripprefix.prefixes=/rest/v1
+      - traefik.http.routers.matchday-rest.middlewares=matchday-rest-strip
+      - traefik.http.services.matchday-rest.loadbalancer.server.port=3000
+
+  gotrue:
+    image: supabase/gotrue:latest
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-matchday}
+      GOTRUE_SITE_URL: https://${APP_HOSTNAME}
+      GOTRUE_DISABLE_SIGNUP: "true"
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_EXP: "3600"
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      API_EXTERNAL_URL: https://${APP_HOSTNAME}/auth/v1
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: "9999"
+    networks:
+      - matchday
+      - traefik
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${TRAEFIK_NETWORK}
+      - traefik.http.routers.matchday-auth.rule=Host(`${APP_HOSTNAME}`) && PathPrefix(`/auth/v1`)
+      - traefik.http.routers.matchday-auth.entrypoints=web
+      - traefik.http.middlewares.matchday-auth-strip.stripprefix.prefixes=/auth/v1
+      - traefik.http.routers.matchday-auth.middlewares=matchday-auth-strip
+      - traefik.http.services.matchday-auth.loadbalancer.server.port=9999
+
+networks:
+  matchday:
+    driver: bridge
+  traefik:
+    external: true
+    name: ${TRAEFIK_NETWORK}
