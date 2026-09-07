@@ -14,7 +14,7 @@ services:
       - matchday
 
   postgrest:
-    image: postgrest/postgrest:latest
+    image: postgrest/postgrest:v16.2
     restart: unless-stopped
     depends_on:
       - postgres
@@ -31,13 +31,14 @@ services:
       - traefik.enable=true
       - traefik.docker.network=${TRAEFIK_NETWORK}
       - traefik.http.routers.matchday-rest.rule=Host(`${APP_HOSTNAME}`) && PathPrefix(`/rest/v1`)
-      - traefik.http.routers.matchday-rest.entrypoints=web
+      - traefik.http.routers.matchday-rest.entrypoints=websecure
+      - traefik.http.routers.matchday-rest.tls.certresolver=${TRAEFIK_CERTRESOLVER}
       - traefik.http.middlewares.matchday-rest-strip.stripprefix.prefixes=/rest/v1
       - traefik.http.routers.matchday-rest.middlewares=matchday-rest-strip
       - traefik.http.services.matchday-rest.loadbalancer.server.port=3000
 
   gotrue:
-    image: supabase/gotrue:latest
+    image: supabase/gotrue:v2.196.0
     restart: unless-stopped
     depends_on:
       - postgres
@@ -60,7 +61,8 @@ services:
       - traefik.enable=true
       - traefik.docker.network=${TRAEFIK_NETWORK}
       - traefik.http.routers.matchday-auth.rule=Host(`${APP_HOSTNAME}`) && PathPrefix(`/auth/v1`)
-      - traefik.http.routers.matchday-auth.entrypoints=web
+      - traefik.http.routers.matchday-auth.entrypoints=websecure
+      - traefik.http.routers.matchday-auth.tls.certresolver=${TRAEFIK_CERTRESOLVER}
       - traefik.http.middlewares.matchday-auth-strip.stripprefix.prefixes=/auth/v1
       - traefik.http.routers.matchday-auth.middlewares=matchday-auth-strip
       - traefik.http.services.matchday-auth.loadbalancer.server.port=9999

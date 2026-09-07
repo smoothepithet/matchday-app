@@ -11,7 +11,14 @@ changes are needed, only `CONFIG` values.
 
 - Docker Compose Manager plugin (or equivalent) installed on Unraid.
 - Traefik already running and watching some Docker network (`docker
-  network ls` to find its name).
+  network ls` to find its name), with a certresolver already configured
+  for Let's Encrypt via Cloudflare's DNS-01 challenge (check an existing
+  container's labels for `tls.certresolver=...` — `docker inspect
+  <name>` if you're not sure of the name). DNS-01 doesn't require your
+  box to be reachable from the internet, so Traefik can get a real,
+  valid cert for `api.wyrleyrockets.uk` immediately — no self-signed/
+  plain-HTTP inconsistency between local testing and once the Tunnel is
+  added later.
 - A local DNS override that resolves your chosen hostname (e.g.
   `api.wyrleyrockets.uk`) to your Unraid box's LAN IP — the same
   hostname you'll later point a Cloudflare Tunnel public hostname at, so
@@ -27,8 +34,12 @@ cp .env.example .env
 Fill in `.env`:
 - `APP_HOSTNAME` — your chosen hostname (see above).
 - `TRAEFIK_NETWORK` — the Docker network Traefik watches.
+- `TRAEFIK_CERTRESOLVER` — the certresolver name your other services
+  already use (e.g. `cloudflare`).
 - `POSTGRES_PASSWORD`, `AUTHENTICATOR_PASSWORD` — generate distinct
-  strong passwords for each.
+  strong passwords with `openssl rand -hex 24` each (hex, not base64 —
+  these get embedded in a connection URI where `/`, `+`, or `=` would
+  break parsing).
 - `JWT_SECRET` — generate with `openssl rand -base64 32`.
 
 ## 3. Start the stack
@@ -45,14 +56,14 @@ with an empty `./data/postgres` directory**. If you need to change the
 schema later, apply changes manually via `psql` — restarting the
 container won't re-run these scripts.
 
-`postgrest` and `gotrue` env var names occasionally shift between
-versions — if either container fails to start, check its logs first;
-they're both vocal about missing/misnamed config. Cross-reference against
-the image's own docs on Docker Hub / GitHub if something doesn't match
-(`postgrest/postgrest`, `supabase/gotrue`) since this compose file pins
-`:latest` rather than a specific tag — worth pinning to whatever version
-you confirm working, so a future `docker compose pull` doesn't
-unexpectedly break the stack.
+`postgrest` and `gotrue` are pinned to specific versions (`v16.2` and
+`v2.196.0` respectively, current as of when this was written — note that
+`supabase/gotrue` doesn't publish a `latest` tag at all, only versioned
+releases, so don't switch it to `:latest`). Env var names occasionally
+shift between GoTrue versions — if either container fails to start,
+check its logs first; both are vocal about missing/misnamed config.
+Bump these tags deliberately when you want to, by checking the image's
+tags on Docker Hub, rather than letting them drift.
 
 ## 4. Mint your keys
 
@@ -118,9 +129,11 @@ on a schedule, pointed at wherever you keep backups, covers it.
 ## 9. Exposing it later
 
 When ready to go beyond your LAN: add `APP_HOSTNAME` as a Public Hostname
-in your existing Cloudflare Tunnel config, pointed at the same place your
-other Traefik-routed services are (e.g. `http://traefik:80`). Nothing
-else changes — same hostname, same containers, same `.env`.
+in your existing Cloudflare Tunnel config, pointed at the same target
+your other Traefik-routed services already use — Traefik's HTTPS
+(`websecure`) entrypoint, e.g. `https://traefik:443`, since it's already
+holding a real cert for this hostname (see Prerequisites). Nothing else
+changes — same hostname, same containers, same `.env`.
 
 ## 10. Frontend custom domain (GitHub Pages)
 
