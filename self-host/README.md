@@ -26,6 +26,17 @@ changes are needed, only `CONFIG` values.
   (`api.wyrleyrockets.uk`) simultaneously, so it keeps working
   indefinitely — it's not a step you undo when going live.
 
+  Note on the cert itself: a router rule combining two `Host()` matchers
+  with `||` only gets Traefik to route both hostnames — it does **not**
+  make Traefik request a certificate covering both. Automatic cert
+  inference only picks up the first hostname in the rule; the second
+  falls back to Traefik's self-signed `TRAEFIK DEFAULT CERT`, which
+  `curl`/browsers correctly reject. `docker-compose.yml` works around
+  this with explicit `tls.domains[0].main`/`tls.domains[0].sans` labels,
+  requesting one cert with `APP_HOSTNAME` as the primary name and
+  `LOCAL_HOSTNAME` as a SAN — both covered by one cert, issued via the
+  same DNS-01 challenge.
+
 ## 2. Configure
 
 ```bash

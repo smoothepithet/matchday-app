@@ -33,6 +33,8 @@ services:
       - traefik.http.routers.matchday-rest.rule=(Host(`${APP_HOSTNAME}`) || Host(`${LOCAL_HOSTNAME}`)) && PathPrefix(`/rest/v1`)
       - traefik.http.routers.matchday-rest.entrypoints=websecure
       - traefik.http.routers.matchday-rest.tls.certresolver=${TRAEFIK_CERTRESOLVER}
+      - traefik.http.routers.matchday-rest.tls.domains[0].main=${APP_HOSTNAME}
+      - traefik.http.routers.matchday-rest.tls.domains[0].sans=${LOCAL_HOSTNAME}
       - traefik.http.middlewares.matchday-rest-strip.stripprefix.prefixes=/rest/v1
       - traefik.http.routers.matchday-rest.middlewares=matchday-rest-strip
       - traefik.http.services.matchday-rest.loadbalancer.server.port=3000
@@ -67,6 +69,8 @@ services:
       - traefik.http.routers.matchday-auth.rule=(Host(`${APP_HOSTNAME}`) || Host(`${LOCAL_HOSTNAME}`)) && PathPrefix(`/auth/v1`)
       - traefik.http.routers.matchday-auth.entrypoints=websecure
       - traefik.http.routers.matchday-auth.tls.certresolver=${TRAEFIK_CERTRESOLVER}
+      - traefik.http.routers.matchday-auth.tls.domains[0].main=${APP_HOSTNAME}
+      - traefik.http.routers.matchday-auth.tls.domains[0].sans=${LOCAL_HOSTNAME}
       - traefik.http.middlewares.matchday-auth-strip.stripprefix.prefixes=/auth/v1
       - traefik.http.routers.matchday-auth.middlewares=matchday-auth-strip
       - traefik.http.services.matchday-auth.loadbalancer.server.port=9999
