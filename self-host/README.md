@@ -19,10 +19,12 @@ changes are needed, only `CONFIG` values.
   valid cert for `api.wyrleyrockets.uk` immediately — no self-signed/
   plain-HTTP inconsistency between local testing and once the Tunnel is
   added later.
-- A local DNS override that resolves your chosen hostname (e.g.
-  `api.wyrleyrockets.uk`) to your Unraid box's LAN IP — the same
-  hostname you'll later point a Cloudflare Tunnel public hostname at, so
-  this step never needs to change.
+- A local DNS entry resolving your internal hostname (e.g.
+  `matchday-api.shadowlan.org`, on your existing internal-domain
+  convention) to your Unraid box's LAN IP, for local testing. The
+  Traefik routers accept this hostname alongside the eventual public one
+  (`api.wyrleyrockets.uk`) simultaneously, so it keeps working
+  indefinitely — it's not a step you undo when going live.
 
 ## 2. Configure
 
@@ -32,8 +34,10 @@ cp .env.example .env
 ```
 
 Fill in `.env`:
-- `APP_HOSTNAME` — your chosen hostname (see above).
-- `TRAEFIK_NETWORK` — the Docker network Traefik watches.
+- `APP_HOSTNAME` — the eventual public hostname (e.g. `api.wyrleyrockets.uk`).
+- `LOCAL_HOSTNAME` — your internal-only testing hostname (e.g.
+  `matchday-api.shadowlan.org`).
+- `TRAEFIK_NETWORK` — the Docker network Traefik watches (e.g. `proxynet`).
 - `TRAEFIK_CERTRESOLVER` — the certresolver name your other services
   already use (e.g. `cloudflare`).
 - `POSTGRES_PASSWORD`, `AUTHENTICATOR_PASSWORD` — generate distinct
@@ -84,7 +88,10 @@ one shared coach account via the admin API instead:
 ```bash
 SERVICE_JWT="<paste service_role key from step 4>"
 
-curl -X POST "https://${APP_HOSTNAME}/auth/v1/admin/users" \
+# Use LOCAL_HOSTNAME here while testing locally (APP_HOSTNAME won't
+# resolve until it's exposed via the Tunnel) — either works once both
+# are live, since both route to the same containers.
+curl -X POST "https://matchday-api.shadowlan.org/auth/v1/admin/users" \
   -H "Authorization: Bearer $SERVICE_JWT" \
   -H "Content-Type: application/json" \
   -d '{"email":"coach@example.com","password":"choose-a-password","email_confirm":true}'
@@ -96,12 +103,15 @@ confirmation email that will never arrive.
 
 ## 6. Point the apps at the new stack
 
-In both `app.js` and `dashboard/app.js`:
+While testing locally, point `SUPABASE_URL` at `LOCAL_HOSTNAME`; switch
+it to `APP_HOSTNAME` once that's live via the Tunnel (step 9). The anon
+key doesn't change either way — it's tied to the JWT secret, not the
+hostname. In both `app.js` and `dashboard/app.js`:
 
 ```js
 const CONFIG = {
   TEAM_NAME: "Wyrley Rockets",
-  SUPABASE_URL: "https://api.wyrleyrockets.uk",
+  SUPABASE_URL: "https://matchday-api.shadowlan.org",  // -> https://api.wyrleyrockets.uk once live
   SUPABASE_ANON_KEY: "<anon key from step 4>",
 };
 ```
