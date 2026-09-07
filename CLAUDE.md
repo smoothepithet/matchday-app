@@ -59,25 +59,35 @@ decided to self-host the backend (Postgres + PostgREST + GoTrue — the
 same open-source pieces Supabase Cloud runs) on the coach's Unraid box,
 behind an existing Traefik instance and Cloudflare Tunnel, rather than
 pay for AWS/DigitalOcean/Supabase Pro. See `self-host/README.md` for the
-full stack and setup steps — status as of this writing: files are
-written, stack has not yet been run/tested.
+full stack and setup steps — status as of this writing: stack is running
+and TLS is confirmed working; coach login not yet created.
 
-Also bought `wyrleyrockets.uk` to move the whole project off ad-hoc URLs
-onto one domain:
-- apex (`wyrleyrockets.uk`) → GitHub Pages, same repo/paths as today
-  (recorder at `/`, dashboard at `/dashboard/`). A `CNAME` file has been
-  added to the repo root for this; DNS (A records at the apex pointing to
-  GitHub's Pages IPs, added as DNS-only/grey-cloud in Cloudflare so
-  GitHub's Let's Encrypt cert can validate) and enabling "Enforce HTTPS"
-  in the repo's Pages settings are still outstanding, done outside this
-  repo.
-- `api.wyrleyrockets.uk` → Cloudflare Tunnel → the self-hosted backend
-  above.
+The backend lives entirely on `matchday-api.shadowlan.org` (the coach's
+existing internal domain) — both for local testing and, later, once
+exposed via Cloudflare Tunnel. This was originally planned as a dual
+setup (`matchday-api.shadowlan.org` for testing, `api.wyrleyrockets.uk`
+for the eventual public address), but that hit a real snag worth
+remembering: a single Traefik cert covering hostnames from two different
+Cloudflare zones needs the DNS-01 challenge to succeed against *both*
+zones, and the Cloudflare API token in use was only scoped to
+`shadowlan.org` — simplified to one hostname/one zone instead of
+widening the token's scope.
 
-Once the self-hosted stack is confirmed working, `CONFIG.SUPABASE_URL`
-and `CONFIG.SUPABASE_ANON_KEY` in both `app.js` and `dashboard/app.js`
-need updating (currently still point at the paused Supabase project) —
-see `self-host/README.md` steps 4-6 for minting the new anon key.
+Also bought `wyrleyrockets.uk`, reserved for the **frontend only**:
+apex (`wyrleyrockets.uk`) → GitHub Pages, same repo/paths as today
+(recorder at `/`, dashboard at `/dashboard/`). A `CNAME` file has been
+added to the repo root for this; DNS (A records at the apex pointing to
+GitHub's Pages IPs, added as DNS-only/grey-cloud in Cloudflare so
+GitHub's Let's Encrypt cert can validate) and enabling "Enforce HTTPS"
+in the repo's Pages settings are still outstanding, done outside this
+repo. The two domains don't interact — the frontend just calls whatever
+`CONFIG.SUPABASE_URL` points at, regardless of what domain it's itself
+served from.
+
+Once the coach login is created, `CONFIG.SUPABASE_URL` and
+`CONFIG.SUPABASE_ANON_KEY` in both `app.js` and `dashboard/app.js` need
+updating (currently still point at the paused Supabase project) — see
+`self-host/README.md` steps 4-6 for minting the new anon key.
 
 ## Data model (`schema.sql`)
 

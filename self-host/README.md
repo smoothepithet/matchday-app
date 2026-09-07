@@ -7,35 +7,54 @@ exactly the way they talk to Supabase today — same URL shape
 (`/auth/v1/...`, `/rest/v1/...`), same anon-key/JWT model — so no app code
 changes are needed, only `CONFIG` values.
 
+The backend lives entirely on `matchday-api.shadowlan.org` (your internal
+domain) — both for local testing and, later, when exposed via Cloudflare
+Tunnel. `wyrleyrockets.uk` is reserved for the frontend (GitHub Pages)
+only; keeping the backend on a single zone avoids needing Cloudflare API
+token permissions across two separate zones.
+
 ## 1. Prerequisites
 
 - Docker Compose Manager plugin (or equivalent) installed on Unraid.
 - Traefik already running and watching some Docker network (`docker
-  network ls` to find its name), with a certresolver already configured
-  for Let's Encrypt via Cloudflare's DNS-01 challenge (check an existing
-  container's labels for `tls.certresolver=...` — `docker inspect
-  <name>` if you're not sure of the name). DNS-01 doesn't require your
-  box to be reachable from the internet, so Traefik can get a real,
-  valid cert for `api.wyrleyrockets.uk` immediately — no self-signed/
-  plain-HTTP inconsistency between local testing and once the Tunnel is
-  added later.
-- A local DNS entry resolving your internal hostname (e.g.
-  `matchday-api.shadowlan.org`, on your existing internal-domain
-  convention) to your Unraid box's LAN IP, for local testing. The
-  Traefik routers accept this hostname alongside the eventual public one
-  (`api.wyrleyrockets.uk`) simultaneously, so it keeps working
-  indefinitely — it's not a step you undo when going live.
+  network ls` to find its name — e.g. `proxynet`), with a certresolver
+  already configured for Let's Encrypt via Cloudflare's DNS-01 challenge
+  (check an existing container's labels for `tls.certresolver=...` —
+  `docker inspect <name>` if you're not sure of the name). DNS-01 doesn't
+  require your box to be reachable from the internet, so Traefik can get
+  a real, valid cert immediately — no self-signed/plain-HTTP
+  inconsistency between local testing and once the Tunnel is added later.
+- A local DNS entry resolving `matchday-api.shadowlan.org` to your Unraid
+  box's LAN IP.
+- The Cloudflare API token behind that certresolver needs **Zone:DNS:Edit**
+  on the `shadowlan.org` zone specifically (it almost certainly already
+  has this, since it's the zone your other internal services use).
 
-  Note on the cert itself: a router rule combining two `Host()` matchers
-  with `||` only gets Traefik to route both hostnames — it does **not**
-  make Traefik request a certificate covering both. Automatic cert
-  inference only picks up the first hostname in the rule; the second
-  falls back to Traefik's self-signed `TRAEFIK DEFAULT CERT`, which
-  `curl`/browsers correctly reject. `docker-compose.yml` works around
-  this with explicit `tls.domains[0].main`/`tls.domains[0].sans` labels,
-  requesting one cert with `APP_HOSTNAME` as the primary name and
-  `LOCAL_HOSTNAME` as a SAN — both covered by one cert, issued via the
-  same DNS-01 challenge.
+  Two gotchas worth knowing about upfront, both hit while setting this up:
+  - If the DNS-01 propagation pre-check ever hangs forever on "waiting
+    for record propagation" with an error like `NS 127.0.0.11:53 did not
+    return the expected TXT record`, it means your Docker host's default
+    DNS resolver is answering `shadowlan.org` queries from a local
+    override rather than forwarding to Cloudflare's real public
+    nameservers — it can't see a TXT record that only exists publicly.
+    Fix is on Traefik's own static config (not this repo), under the
+    certresolver's `dnsChallenge`:
+    ```yaml
+    dnsChallenge:
+      provider: cloudflare
+      resolvers:
+        - "1.1.1.1:53"
+        - "8.8.8.8:53"
+    ```
+    This makes the pre-check ask real public resolvers instead. Requires
+    a full Traefik restart (static config doesn't hot-reload).
+  - A router rule combining multiple `Host()` matchers with `||` only
+    affects HTTP-level routing — it does **not** make Traefik request a
+    cert covering every hostname in the rule (automatic cert inference
+    only picks up the first one). Not an issue with the single-hostname
+    setup here, but worth knowing if this ever grows a second hostname
+    again — the fix would be explicit `tls.domains[0].main`/`.sans`
+    labels.
 
 ## 2. Configure
 
@@ -45,9 +64,7 @@ cp .env.example .env
 ```
 
 Fill in `.env`:
-- `APP_HOSTNAME` — the eventual public hostname (e.g. `api.wyrleyrockets.uk`).
-- `LOCAL_HOSTNAME` — your internal-only testing hostname (e.g.
-  `matchday-api.shadowlan.org`).
+- `APP_HOSTNAME` — `matchday-api.shadowlan.org`.
 - `TRAEFIK_NETWORK` — the Docker network Traefik watches (e.g. `proxynet`).
 - `TRAEFIK_CERTRESOLVER` — the certresolver name your other services
   already use (e.g. `cloudflare`).
@@ -91,6 +108,13 @@ check its logs first; both are vocal about missing/misnamed config.
 Bump these tags deliberately when you want to, by checking the image's
 tags on Docker Hub, rather than letting them drift.
 
+Once containers are up, confirm the cert actually issued before moving
+on:
+```bash
+curl -v https://matchday-api.shadowlan.org/ 2>&1 | grep -i "subject:"
+```
+Should show a real Let's Encrypt subject, not `CN=TRAEFIK DEFAULT CERT`.
+
 ## 4. Mint your keys
 
 ```bash
@@ -102,6 +126,11 @@ python mint_jwt.py anon "$JWT_SECRET" 10
 python mint_jwt.py service_role "$JWT_SECRET" 10
 ```
 
+No Python on the Unraid host? Run it in a throwaway container instead:
+```bash
+docker run --rm -v "$(pwd)":/app -w /app python:3-alpine python mint_jwt.py anon "$JWT_SECRET" 10
+```
+
 ## 5. Create the coach login
 
 GoTrue signup is disabled (`GOTRUE_DISABLE_SIGNUP=true`), so create the
@@ -110,9 +139,6 @@ one shared coach account via the admin API instead:
 ```bash
 SERVICE_JWT="<paste service_role key from step 4>"
 
-# Use LOCAL_HOSTNAME here while testing locally (APP_HOSTNAME won't
-# resolve until it's exposed via the Tunnel) — either works once both
-# are live, since both route to the same containers.
 curl -X POST "https://matchday-api.shadowlan.org/auth/v1/admin/users" \
   -H "Authorization: Bearer $SERVICE_JWT" \
   -H "Content-Type: application/json" \
@@ -125,15 +151,12 @@ confirmation email that will never arrive.
 
 ## 6. Point the apps at the new stack
 
-While testing locally, point `SUPABASE_URL` at `LOCAL_HOSTNAME`; switch
-it to `APP_HOSTNAME` once that's live via the Tunnel (step 9). The anon
-key doesn't change either way — it's tied to the JWT secret, not the
-hostname. In both `app.js` and `dashboard/app.js`:
+In both `app.js` and `dashboard/app.js`:
 
 ```js
 const CONFIG = {
   TEAM_NAME: "Wyrley Rockets",
-  SUPABASE_URL: "https://matchday-api.shadowlan.org",  // -> https://api.wyrleyrockets.uk once live
+  SUPABASE_URL: "https://matchday-api.shadowlan.org",
   SUPABASE_ANON_KEY: "<anon key from step 4>",
 };
 ```
@@ -160,21 +183,23 @@ on a schedule, pointed at wherever you keep backups, covers it.
 
 ## 9. Exposing it later
 
-When ready to go beyond your LAN: add `APP_HOSTNAME` as a Public Hostname
-in your existing Cloudflare Tunnel config, pointed at the same target
-your other Traefik-routed services already use — Traefik's HTTPS
-(`websecure`) entrypoint, e.g. `https://traefik:443`, since it's already
-holding a real cert for this hostname (see Prerequisites). Nothing else
-changes — same hostname, same containers, same `.env`.
+When ready to go beyond your LAN: add `matchday-api.shadowlan.org` as a
+Public Hostname in your existing Cloudflare Tunnel config, pointed at
+the same target your other Traefik-routed services already use —
+Traefik's HTTPS (`websecure`) entrypoint, e.g. `https://traefik:443`,
+since it's already holding a real cert for this hostname. Nothing else
+changes — same hostname, same containers, same `.env`, no `CONFIG`
+update needed in the apps either.
 
 ## 10. Frontend custom domain (GitHub Pages)
 
-This backend is one half of moving the whole project onto
-`wyrleyrockets.uk` — the other half is the recorder/dashboard, which stay
-on GitHub Pages but under the custom domain instead of the `github.io`
-URL. That's handled separately (a `CNAME` file at the repo root, plus DNS
-records in Cloudflare pointing the apex domain at GitHub's Pages IPs) —
-see the root `CLAUDE.md` for the current state of that migration.
+The frontend (recorder/dashboard) is handled entirely separately, on
+`wyrleyrockets.uk` — a `CNAME` file at the repo root plus DNS records in
+Cloudflare pointing the apex domain at GitHub's Pages IPs. See the root
+`CLAUDE.md` for the current state of that migration. The two domains
+don't need to match or interact in any way; the frontend just calls
+whatever `CONFIG.SUPABASE_URL` points at, regardless of what domain it's
+itself served from.
 
 ## 11. Brute-force protection on the login endpoint
 
@@ -183,16 +208,16 @@ of its hosted Auth service — worth replacing before relying on this for
 a real season, since there's a single shared coach email/password and
 nothing else standing between it and the internet once exposed.
 
-Because traffic to `api.wyrleyrockets.uk` always flows through
-Cloudflare's edge (Tunnel traffic isn't optional-proxy like a plain DNS
-record — it's always proxied), a Cloudflare WAF rate-limiting rule
-covers this cheaply:
+Once exposed via the Tunnel, traffic to `matchday-api.shadowlan.org`
+always flows through Cloudflare's edge (Tunnel traffic isn't
+optional-proxy like a plain DNS record — it's always proxied), so a
+Cloudflare WAF rate-limiting rule covers this cheaply:
 
 1. Cloudflare dashboard → your zone → **Security → WAF → Rate limiting
    rules** (exact location has moved around Cloudflare's dashboard
    before, so search "rate limit" if it's not there).
-2. Create a rule matching: `Hostname equals api.wyrleyrockets.uk` AND
-   `URI Path equals /auth/v1/token`.
+2. Create a rule matching: `Hostname equals matchday-api.shadowlan.org`
+   AND `URI Path equals /auth/v1/token`.
 3. Rate: something like 5 requests per 1 minute, per IP.
 4. Action: **Managed Challenge** rather than outright Block — a coach
    who fat-fingers a password a few times pitch-side gets a challenge,
