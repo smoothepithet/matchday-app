@@ -130,3 +130,30 @@ on GitHub Pages but under the custom domain instead of the `github.io`
 URL. That's handled separately (a `CNAME` file at the repo root, plus DNS
 records in Cloudflare pointing the apex domain at GitHub's Pages IPs) —
 see the root `CLAUDE.md` for the current state of that migration.
+
+## 11. Brute-force protection on the login endpoint
+
+Self-hosting drops whatever abuse-mitigation Supabase Cloud runs in front
+of its hosted Auth service — worth replacing before relying on this for
+a real season, since there's a single shared coach email/password and
+nothing else standing between it and the internet once exposed.
+
+Because traffic to `api.wyrleyrockets.uk` always flows through
+Cloudflare's edge (Tunnel traffic isn't optional-proxy like a plain DNS
+record — it's always proxied), a Cloudflare WAF rate-limiting rule
+covers this cheaply:
+
+1. Cloudflare dashboard → your zone → **Security → WAF → Rate limiting
+   rules** (exact location has moved around Cloudflare's dashboard
+   before, so search "rate limit" if it's not there).
+2. Create a rule matching: `Hostname equals api.wyrleyrockets.uk` AND
+   `URI Path equals /auth/v1/token`.
+3. Rate: something like 5 requests per 1 minute, per IP.
+4. Action: **Managed Challenge** rather than outright Block — a coach
+   who fat-fingers a password a few times pitch-side gets a challenge,
+   not locked out entirely.
+
+This only covers the sign-in endpoint — `/auth/v1/admin/*` (used once,
+manually, to create the coach account) is already gated by the
+`service_role` key rather than a password, so it doesn't need the same
+treatment.
