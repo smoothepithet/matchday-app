@@ -71,12 +71,20 @@ resolvers, GoTrue's runtime queries needing an explicit `search_path`,
 and CORS needing a Traefik middleware to replace the role Kong normally
 plays in Supabase's reference stack.
 
-Remaining before this fully replaces Supabase Cloud: exposing
-`matchday-api.shadowlan.org` externally via the existing Cloudflare
-Tunnel (Public Hostname → `192.168.8.2:443`, Traefik's HTTPS
-entrypoint), adding the Cloudflare WAF rate-limit rule on
-`/auth/v1/token` once it's public, and setting up a Postgres backup
-cron — all in `self-host/README.md` steps 8-11.
+`matchday-api.shadowlan.org` is now exposed externally via the
+Cloudflare Tunnel (confirmed working — sign-in tested successfully from
+outside the LAN) — Public Hostname → `https://192.168.8.2:443`, with
+**Origin Server Name** explicitly set to `matchday-api.shadowlan.org` in
+the Tunnel's TLS settings. That last part matters: `cloudflared`
+validates the origin's certificate against whatever it connects to, and
+Traefik's cert is issued for the hostname, not the IP — without
+explicitly telling `cloudflared` which hostname to validate against, it
+fails cert verification even though the cert itself is perfectly valid.
+
+Since `/auth/v1/token` is now reachable from the whole internet rather
+than just the LAN, the Cloudflare WAF rate-limit rule on it
+(`self-host/README.md` step 11) is the immediate next priority — not
+done yet. Postgres backups (step 8) also still outstanding.
 
 The backend lives entirely on `matchday-api.shadowlan.org` (the coach's
 existing internal domain) — both for local testing and, later, once

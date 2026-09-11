@@ -77,6 +77,21 @@ token permissions across two separate zones.
     `docker-compose.yml`, `matchday-rest-cors`/`matchday-auth-cors`) —
     it answers preflight OPTIONS requests directly and adds the
     necessary `Access-Control-*` headers to real responses too.
+  - Once exposed via the Tunnel (step 9), requests may 502 with
+    `cloudflared` logging `tls: failed to verify certificate: x509:
+    cannot validate certificate for 192.168.8.2 because it doesn't
+    contain any IP SANs`. `cloudflared` validates the origin's cert
+    against whatever it connects to — since the Tunnel's Service URL
+    targets the LAN IP but Traefik's cert is issued for the hostname,
+    verification fails even though the cert is perfectly valid. Fix: in
+    the Tunnel's Public Hostname settings, under the TLS section, set
+    **Origin Server Name** explicitly to `matchday-api.shadowlan.org`
+    (exact spelling matters — a stray `.` where the `-` should be
+    produces a *different*, more confusing error: cert valid for some
+    `xxxx.yyyy.traefik.default` name instead, since Traefik falls back
+    to its own internal default cert for any SNI that doesn't match a
+    configured router). Do **not** "fix" this by just disabling TLS
+    verification instead — that's a real security downgrade, not a fix.
 
 ## 2. Configure
 
@@ -203,15 +218,29 @@ docker compose exec -T postgres pg_dump -U postgres matchday | gzip > /mnt/user/
 
 on a schedule, pointed at wherever you keep backups, covers it.
 
-## 9. Exposing it later
+## 9. Exposing it later (confirmed working — see gotcha above)
 
-When ready to go beyond your LAN: add `matchday-api.shadowlan.org` as a
-Public Hostname in your existing Cloudflare Tunnel config, pointed at
-the same target your other Traefik-routed services already use —
-Traefik's HTTPS (`websecure`) entrypoint, e.g. `https://traefik:443`,
-since it's already holding a real cert for this hostname. Nothing else
-changes — same hostname, same containers, same `.env`, no `CONFIG`
-update needed in the apps either.
+In the Cloudflare Zero Trust dashboard → your Tunnel → Public Hostname →
+Add a public hostname:
+- **Subdomain**: `matchday-api`, **Domain**: `shadowlan.org`
+- **Type**: `HTTPS`, **Service URL**: `https://192.168.8.2:443` (your
+  Unraid box's LAN IP — Traefik's published HTTPS port)
+- Under **Additional application settings → TLS**: set **Origin Server
+  Name** to `matchday-api.shadowlan.org` exactly (see the gotcha above —
+  this is required, not optional, and the exact spelling matters).
+  Leave **No TLS Verify** off.
+- Leave **Access** on defaults (no Access policy) — the app has its own
+  auth via GoTrue; a Cloudflare Access gate here would just get in its way.
+
+Nothing else changes — same hostname, same containers, same `.env`, no
+`CONFIG` update needed in the apps. Verify from a connection outside
+your LAN (mobile data works) before considering this done:
+```bash
+curl -X POST "https://matchday-api.shadowlan.org/auth/v1/token?grant_type=password" \
+  -H "apikey: <anon key>" -H "Content-Type: application/json" \
+  -d '{"email":"<coach email>","password":"<coach password>"}'
+```
+Should return a real `access_token`/`refresh_token` pair.
 
 ## 10. Frontend custom domain (GitHub Pages)
 
