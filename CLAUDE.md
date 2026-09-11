@@ -8,7 +8,7 @@ A stats app for a kids' grassroots football team, **Wyrley Rockets** (team
 colours: black & white). Three pieces sharing one Supabase database:
 
 ```
-index.html, app.js, styles.css   Match-day recorder PWA — install to a phone, record events
+record/                          Match-day recorder PWA — install to a phone, record events
                                   pitch-side, works offline
 dashboard/                       Private season-stats page — top scorers, assists, saves,
                                   results log
@@ -21,11 +21,15 @@ preview.html                     Standalone demo build with in-memory state (no
                                   the deployable app, don't treat it as one
 ```
 
-Note: the recorder, report generator, and schema have always lived at the
-repo root (never in `recorder/`, `report-generator/`, or `supabase/`
-subfolders, despite what older drafts of this file said). Only the
-dashboard was ever moved — from a nested build-output path into its own
-top-level `dashboard/` folder.
+Note: the report generator and schema have always lived at the repo
+root (never in `report-generator/` or `supabase/` subfolders, despite
+what older drafts of this file said). The recorder (`index.html`,
+`app.js`, `styles.css`) lived at the repo root too until it moved into
+its own `record/` folder — the root now just holds a redirect
+`index.html` pointing there, for any bookmark/home-screen shortcut
+saved from before the move. Dashboard has always been its own
+top-level `dashboard/` folder (moved once, early on, from a nested
+build-output path).
 
 ## Design system
 
@@ -34,7 +38,7 @@ Rocket-launch motif carried through small touches (🚀 emoji, diagonal
 "vapour trail" stripe texture on the brand strip and scoreboard top border,
 chevron/dashed borders) rather than literal rocket illustrations.
 
-Tokens (defined at the top of `styles.css`, duplicated inline in
+Tokens (defined at the top of `record/styles.css`, duplicated inline in
 `dashboard/index.html` and `preview.html` — keep all three in sync if you
 change them):
 
@@ -61,7 +65,7 @@ behind an existing Traefik instance and Cloudflare Tunnel, rather than
 pay for AWS/DigitalOcean/Supabase Pro. See `self-host/README.md` for the
 full stack and setup steps — status as of this writing: **fully working
 end-to-end**. Stack is running, TLS is valid, coach login is created,
-and `app.js`/`dashboard/app.js` are pointed at it — a real match has
+and `record/app.js`/`dashboard/app.js` are pointed at it — a real match has
 been recorded (squad management, live scoreboard, sync) and confirmed
 showing up correctly on the dashboard. Along the way this surfaced (and
 fixed) four real self-hosting gotchas now documented in
@@ -114,7 +118,9 @@ widening the token's scope.
 
 Also bought `wyrleyrockets.uk`, reserved for the **frontend only**:
 apex (`wyrleyrockets.uk`) → GitHub Pages, same repo/paths as today
-(recorder at `/`, dashboard at `/dashboard/`). A `CNAME` file has been
+(recorder at `/record/`, dashboard at `/dashboard/`, with a redirect
+`index.html` at `/` for any bookmark/home-screen shortcut saved from
+before the recorder moved off the root path). A `CNAME` file has been
 added to the repo root for this; DNS (A records at the apex pointing to
 GitHub's Pages IPs, added as DNS-only/grey-cloud in Cloudflare so
 GitHub's Let's Encrypt cert can validate) and enabling "Enforce HTTPS"
@@ -157,7 +163,7 @@ Working:
   under `auth_session` and refreshed opportunistically; the recorder never
   blocks on a refresh failure (keeps working offline pitch-side), the
   dashboard bounces back to the login screen on a definite auth failure.
-- Player ID resolution: `resolvePlayerId()` in `app.js` looks up (or
+- Player ID resolution: `resolvePlayerId()` in `record/app.js` looks up (or
   creates) a `players` row by name during sync and attaches its id to each
   event row, so `player_season_stats` actually populates per-player.
   Resolved name→id pairs are cached in `localStorage` under `player_ids`.
@@ -196,22 +202,24 @@ Known gaps (in priority order for next work):
   usual "no localStorage" restriction doesn't apply here).
 - Backend config (`SUPABASE_URL`, `SUPABASE_ANON_KEY` — named for the
   Supabase-shaped API they still point at, even though the backend is
-  now self-hosted) lives as a `CONFIG` object at the top of `app.js` and
-  `dashboard/app.js`. Same values go in both places. Both fall back to
-  `localStorage` overrides (`dev_supabase_url`/`dev_supabase_anon_key`)
-  before the hardcoded prod values — see `self-host/README.md` step 12
-  for testing against the dev backend without ever editing these files.
+  now self-hosted) lives as a `CONFIG` object at the top of
+  `record/app.js` and `dashboard/app.js`. Same values go in both places.
+  Both fall back to `localStorage` overrides
+  (`dev_supabase_url`/`dev_supabase_anon_key`) before the hardcoded prod
+  values — see `self-host/README.md` step 12 for testing against the
+  dev backend without ever editing these files.
 - The auth helper (`getSession`/`setSession`/`clearSession`/`signIn`/
   `refreshSession`/`ensureFreshSession`) is duplicated verbatim in both
   `app.js` files, same convention as `CONFIG` — no shared module, since
   there's no build step. Keep both copies in sync if this logic changes.
-- Team name lives as `CONFIG.TEAM_NAME` in `app.js` and `TEAM_NAME` in
-  `generate_report.py` — update both if the team name ever changes.
+- Team name lives as `CONFIG.TEAM_NAME` in `record/app.js` and
+  `TEAM_NAME` in `generate_report.py` — update both if the team name
+  ever changes.
 
 ## Testing
 
 No automated tests currently exist in this repo (see known gap #4 above).
-Verify changes manually: open `index.html` for the recorder and
+Verify changes manually: open `record/index.html` for the recorder and
 `dashboard/index.html` for the dashboard directly in a browser, or via the
 deployed GitHub Pages site.
 

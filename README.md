@@ -6,7 +6,7 @@ it has the full design system, data model, and known-gaps list.
 Three pieces that share one Supabase database:
 
 ```
-index.html, app.js, styles.css   Match-day recorder PWA — install to a phone, record events
+record/                          Match-day recorder PWA — install to a phone, record events
                                   pitch-side, works offline
 dashboard/                       Private season-stats page — top scorers, assists, saves,
                                   results log
@@ -24,7 +24,7 @@ schema.sql                       Database schema — run this first
 ## 2. Configure the apps
 
 Paste your Supabase URL + anon key into:
-- `app.js` (top of file, `CONFIG`)
+- `record/app.js` (top of file, `CONFIG`)
 - `dashboard/app.js` (top of file, `CONFIG`)
 
 ## 3. Create the coach login
@@ -40,7 +40,7 @@ enough for a single-team app):
 
 ## 4. Try the recorder
 
-Open `index.html` on a phone (host it somewhere simple — GitHub Pages
+Open `record/index.html` on a phone (host it somewhere simple — GitHub Pages
 works well and is free), sign in with the coach account, and add it to your
 home screen for the full app-like feel. It works fully offline once signed
 in; events queue locally and sync automatically once you're back on signal.

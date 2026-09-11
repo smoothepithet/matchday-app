@@ -2,7 +2,7 @@
 
 Replaces Supabase's hosted platform with the same three open-source pieces
 it's built on, run directly on your Unraid box behind your existing
-Traefik instance. `app.js` and `dashboard/app.js` talk to this stack
+Traefik instance. `record/app.js` and `dashboard/app.js` talk to this stack
 exactly the way they talk to Supabase today — same URL shape
 (`/auth/v1/...`, `/rest/v1/...`), same anon-key/JWT model — so no app code
 changes are needed, only `CONFIG` values.
@@ -183,7 +183,7 @@ Should show a real Let's Encrypt subject, not `CN=TRAEFIK DEFAULT CERT`.
 python mint_jwt.py anon "$JWT_SECRET" 10
 
 # service_role key — server-side only, used once below to create the
-# coach login. Never put this in app.js/dashboard/app.js.
+# coach login. Never put this in record/app.js/dashboard/app.js.
 python mint_jwt.py service_role "$JWT_SECRET" 10
 ```
 
@@ -212,7 +212,7 @@ confirmation email that will never arrive.
 
 ## 6. Point the apps at the new stack
 
-In both `app.js` and `dashboard/app.js`:
+In both `record/app.js` and `dashboard/app.js`:
 
 ```js
 const CONFIG = {
@@ -400,8 +400,8 @@ Tunnel; local-network testing only.
 
 **Using it on desktop** — browser console, on either the deployed site
 or a local copy served via `python -m http.server` (never by editing
-`app.js`/`dashboard/app.js` directly, so there's no risk of accidentally
-committing dev config to production):
+`record/app.js`/`dashboard/app.js` directly, so there's no risk of
+accidentally committing dev config to production):
 ```js
 localStorage.setItem("dev_supabase_url", "https://matchday-api-dev.shadowlan.org");
 localStorage.setItem("dev_supabase_anon_key", "<dev anon key>");
@@ -420,13 +420,13 @@ the key is easy), then save it as a home-screen bookmark/icon (name it
 something like "Matchday DEV" so it's visually distinct from the real
 app icon):
 ```
-https://wyrleyrockets.uk/?dev=1&key=<dev anon key, URL-encoded>
+https://wyrleyrockets.uk/record/?dev=1&key=<dev anon key, URL-encoded>
 ```
 Tapping that icon sets the same `localStorage` override and immediately
 cleans the key out of the visible address bar. A second icon pointed at
-`https://wyrleyrockets.uk/?dev=0` clears it back to prod — or just use
-the normal, unmodified app icon, since prod is the default when no
-override is set.
+`https://wyrleyrockets.uk/record/?dev=0` clears it back to prod — or
+just use the normal, unmodified app icon, since prod is the default
+when no override is set.
 
 One trade-off worth knowing: the dev anon key ends up saved inside that
 one bookmarked URL. That's an acceptable risk here — the dev key only
