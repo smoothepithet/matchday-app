@@ -9,10 +9,13 @@
 <!-- iOS Safari's "Add to Home Screen" has historically relied on these
      Apple-specific tags for standalone (no browser chrome) display and
      the home-screen title, rather than reading manifest.json the way
-     Android/Chrome does — both are set so it works reliably either way. -->
+     Android/Chrome does — both are set so it works reliably either way.
+     apple-touch-icon specifically needs a real PNG (SVG isn't reliably
+     supported there), which is why this one's separate from icon.svg. -->
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="Matchday" />
+<link rel="apple-touch-icon" href="icon-180.png" />
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
