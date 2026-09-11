@@ -156,6 +156,14 @@ async function ensureFreshSession() {
 // Squad (player profiles) — persists across matches on this device
 // ---------------------------------------------------------------
 let squad = store.get("squad", []); // [{ id, name, number }]
+// Which squad members are checked in the "Who's Playing Today?" list —
+// separate from `squad` itself since not everyone on the books plays
+// every week. todaySquadKnownIds tracks which player ids have already
+// had a default applied, so a newly added player defaults to checked
+// (most of the squad plays most weeks) without silently re-checking
+// someone the coach has already unticked on a later re-render.
+let todaySquadSelected = new Set();
+let todaySquadKnownIds = new Set();
 let match = null;       // current match object while live
 let clockInterval = null;
 let pendingAction = null; // resolves the currently-open player picker
@@ -165,6 +173,51 @@ function saveSquad() {
   store.set("squad", squad);
   renderSquadList();
   updateSquadCountBadge();
+  syncTodaySquadSelection();
+  renderTodaySquadPicker();
+}
+
+// Applies the "default new arrivals to checked" rule described above,
+// without disturbing anyone the coach has already unticked.
+function syncTodaySquadSelection() {
+  squad.forEach((p) => {
+    if (!todaySquadKnownIds.has(p.id)) {
+      todaySquadSelected.add(p.id);
+      todaySquadKnownIds.add(p.id);
+    }
+  });
+}
+
+function renderTodaySquadPicker() {
+  const list = document.getElementById("today-squad-list");
+  const empty = document.getElementById("today-squad-empty");
+  if (!list) return;
+  list.innerHTML = "";
+  if (!squad.length) {
+    if (empty) empty.classList.remove("hidden");
+    return;
+  }
+  if (empty) empty.classList.add("hidden");
+  squad
+    .slice()
+    .sort((a, b) => (a.number ?? 99) - (b.number ?? 99))
+    .forEach((p) => {
+      const row = document.createElement("label");
+      row.className = "today-squad-item";
+      const checked = todaySquadSelected.has(p.id);
+      row.innerHTML = `
+        <input type="checkbox" data-id="${p.id}" ${checked ? "checked" : ""} />
+        <span class="number-badge">${p.number ?? "-"}</span>
+        <span class="player-name">${p.name}</span>
+      `;
+      list.appendChild(row);
+    });
+  list.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+    cb.addEventListener("change", () => {
+      if (cb.checked) todaySquadSelected.add(cb.dataset.id);
+      else todaySquadSelected.delete(cb.dataset.id);
+    });
+  });
 }
 
 function renderSquadList() {
@@ -243,6 +296,8 @@ async function syncSquadFromSupabase(session) {
       store.set("squad", squad);
       renderSquadList();
       updateSquadCountBadge();
+      syncTodaySquadSelection();
+      renderTodaySquadPicker();
     }
   } catch (err) {
     console.error("Squad sync from Supabase failed:", err);
@@ -580,6 +635,8 @@ function initApp() {
 
   renderSquadList();
   updateSquadCountBadge();
+  syncTodaySquadSelection();
+  renderTodaySquadPicker();
 
   document.getElementById("match-date").valueAsDate = new Date();
 
@@ -593,6 +650,7 @@ function initApp() {
     const matchDate = document.getElementById("match-date").value;
     const venue = document.getElementById("venue").value.trim() || "Venue TBC";
     const competition = document.getElementById("competition").value.trim();
+    const todaySquad = squad.filter((p) => todaySquadSelected.has(p.id)).map((p) => p.name);
 
     match = {
       id: crypto.randomUUID(),
@@ -604,6 +662,7 @@ function initApp() {
       their_score: 0,
       status: "in_progress",
       events: [],       // { id, type, player, number, assist, minute }
+      todaySquad,       // names checked in "Who's Playing Today?" — drives appearance rows on sync
       startedAt: Date.now(),
       totalPausedMs: 0, // accumulated half-time/stoppage duration, excluded from the clock
       pausedAt: null,   // timestamp the current pause began, or null if running
@@ -862,6 +921,22 @@ async function syncMatch(m) {
           minute: e.minute,
         });
       }
+    }
+
+    // One "appearance" row per player checked in "Who's Playing Today?"
+    // — this is what makes player_season_stats.appearances correct for
+    // a player who plays the whole match without scoring/assisting/
+    // saving; it already counts distinct matches per player across
+    // every event type, so this needs no view change, and overlapping
+    // with a goal/save/assist row above for the same player+match is
+    // harmless (still just one distinct match either way).
+    for (const name of m.todaySquad || []) {
+      eventRows.push({
+        match_id: savedMatch.id,
+        player_id: await resolvePlayerId(headers, name),
+        event_type: "appearance",
+        minute: null,
+      });
     }
 
     await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/events`, {

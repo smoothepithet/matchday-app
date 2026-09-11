@@ -586,6 +586,65 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   line-height: 1.5;
 }
 
+/* --- "Who's Playing Today?" checklist on the setup screen — same
+   visual language as .squad-item, but as a checkable label row rather
+   than a remove-able entry, and boxed with its own scroll since it
+   lives inline in the setup form instead of its own full screen. --- */
+.today-squad-list {
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid var(--steel-light);
+  border-radius: var(--radius-md);
+  padding: 6px;
+  margin-top: 4px;
+}
+
+.today-squad-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.today-squad-item:not(:last-child) {
+  border-bottom: 1px solid var(--steel);
+}
+
+.today-squad-item input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--red);
+  flex-shrink: 0;
+}
+
+.today-squad-item .number-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  color: var(--void);
+  font-weight: 800;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.today-squad-item .player-name {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.today-squad-empty {
+  font-size: 14px;
+  padding: 10px 4px;
+  line-height: 1.5;
+}
+
 /* --- Awards screen form fields — same look as .setup's, but that
    selector never matched here since this screen uses .squad-screen,
    not .setup. Named/scoped separately (rather than just adding

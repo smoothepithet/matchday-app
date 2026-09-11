@@ -171,8 +171,16 @@ served from.
   no code change needed. `dashboard`'s Venue filter is built dynamically
   from whatever venue names are actually in the data
   (`populateVenueFilter()`), not a hard-coded list.
-- `events` — one row per goal / assist / save / goal_against, linked to a
-  match and (eventually) a player. `goal_against` means "the opposition's
+- `events` — one row per goal / assist / save / goal_against / appearance,
+  linked to a match and (eventually) a player. `appearance` has no
+  minute and isn't a real "moment" — one row per player checked in the
+  recorder's "Who's Playing Today?" list, added purely so
+  `player_season_stats.appearances` is correct for a player who plays
+  the whole match without ever scoring/assisting/saving (previously the
+  only way to be counted as appearing at all was to have some other
+  event attached). Overlapping with a goal/save/assist row for the same
+  player+match is harmless — `appearances` is `count(distinct
+  match_id)`, so it collapses fine either way. `goal_against` means "the opposition's
   score went up" — the recorder's single Goal Them button doesn't
   distinguish how (open play, penalty, a genuine own goal), so this
   covers all of it. Used to be mislabeled `own_goal`, which is wrong for
@@ -305,6 +313,21 @@ Working:
   login/boot and merges it into the local squad by name (updates shirt
   numbers, adds anyone missing locally) — a new device doesn't start
   from an empty squad list.
+- "Who's Playing Today?" checklist on the setup screen: lets the coach
+  tick which squad members are actually present before kickoff, so
+  `appearances` stat is accurate for players who play but never touch
+  the ball. Deliberately reads from the local `squad` (already kept
+  current via the pull-sync above) rather than fetching fresh from the
+  database at kickoff — the recorder is offline-first specifically so
+  it works pitch-side without signal, and a live fetch here would
+  undermine that. Defaults every squad member to checked
+  (`todaySquadSelected`/`todaySquadKnownIds` in `record/app.js` — the
+  latter tracks which player ids have already had the default applied,
+  so a newly added player defaults to checked without silently
+  re-checking someone the coach already unticked on a later re-render,
+  e.g. after `syncSquadFromSupabase()` pulls in an update mid-setup).
+  The checked names are captured as `match.todaySquad` at kickoff and
+  turned into `appearance` event rows on sync.
 
 Known gaps (in priority order for next work):
 1. **No automated social posting.** Meta (Instagram/Facebook) requires app
@@ -318,9 +341,13 @@ Known gaps (in priority order for next work):
    (merging by name, so a new device doesn't need everyone re-typed in),
    but a `players` row still only gets *created* lazily via
    `resolvePlayerId()` the first time someone is involved in a recorded
-   event. A bench player who never scores/assists/saves won't appear on
-   the server (or in another coach's pulled-down squad) until they do.
-   Removing a player locally also doesn't deactivate their `players` row.
+   event. This mostly stopped mattering once "Who's Playing Today?"
+   shipped — a player just needs to be checked as playing (not to
+   actually score/assist/save) for their `appearance` event to trigger
+   `resolvePlayerId()` — but someone left unchecked, or added to the
+   squad after a match starts, still won't get a `players` row until
+   they're actually involved in something. Removing a player locally
+   also doesn't deactivate their `players` row.
 4. **No automated tests exist.** Earlier drafts of this file referenced a
    `test_recorder.js` (jsdom-based, driving squad setup → kickoff →
    goal/assist/save → undo → end match) but it was never committed — the
