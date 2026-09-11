@@ -34,6 +34,13 @@ create table if not exists events (
   created_at timestamptz not null default now()
 );
 
+-- Only meaningful for event_type = 'goal' (null otherwise). Uses ALTER
+-- rather than being folded into the CREATE TABLE above so re-running
+-- this file against an already-initialized database (see
+-- self-host/README.md's migration steps) actually adds it.
+alter table events add column if not exists goal_type text
+  check (goal_type in ('open_play', 'free_kick', 'penalty'));
+
 -- Weekly/monthly award records. Not tied to a specific match - the two
 -- "Player of the Match" awards are actually decided weekly on the
 -- strength of both weekend matches combined, same cadence as the

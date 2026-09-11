@@ -406,7 +406,11 @@ function renderLog() {
 function describeEvent(e) {
   if (e.type === "goal") {
     const scorer = e.player || "Unknown scorer";
-    return e.assist ? `Goal — ${scorer} (assist: ${e.assist})` : `Goal — ${scorer}`;
+    const base = e.assist ? `Goal — ${scorer} (assist: ${e.assist})` : `Goal — ${scorer}`;
+    // Open play is the common case — only call it out when it's not.
+    return e.goal_type && e.goal_type !== "open_play"
+      ? `${base} [${GOAL_TYPE_LABELS[e.goal_type]}]`
+      : base;
   }
   if (e.type === "goal_them") return "Goal conceded";
   if (e.type === "save") return `Save — ${e.player || "Unknown keeper"}`;
@@ -449,6 +453,32 @@ function openPicker(title, onPick) {
 
 function closePicker() {
   document.getElementById("picker-backdrop").classList.add("hidden");
+}
+
+// ---------------------------------------------------------------
+// Goal-type picker — same sheet as the player picker, fixed options
+// instead of the squad list. Skip/Unknown falls back to open_play
+// (the common case) via the existing picker-skip handler below, which
+// calls pendingAction(null).
+// ---------------------------------------------------------------
+const GOAL_TYPE_LABELS = { open_play: "Open Play", free_kick: "Free Kick", penalty: "Penalty" };
+
+function openGoalTypePicker(onPick) {
+  pendingAction = onPick;
+  document.getElementById("picker-title").textContent = "How was it scored?";
+  const list = document.getElementById("picker-list");
+  list.innerHTML = "";
+  Object.entries(GOAL_TYPE_LABELS).forEach(([value, label]) => {
+    const btn = document.createElement("button");
+    btn.className = "player-option";
+    btn.textContent = label;
+    btn.addEventListener("click", () => {
+      closePicker();
+      onPick(value);
+    });
+    list.appendChild(btn);
+  });
+  document.getElementById("picker-backdrop").classList.remove("hidden");
 }
 
 // ---------------------------------------------------------------
@@ -598,13 +628,28 @@ function initApp() {
     match.our_score += 1;
     renderScore();
     openPicker("Who scored?", (scorer) => {
-      const event = { id: crypto.randomUUID(), type: "goal", player: scorer, assist: null, minute: currentMinute() };
+      const event = {
+        id: crypto.randomUUID(),
+        type: "goal",
+        player: scorer,
+        assist: null,
+        goal_type: "open_play",
+        minute: currentMinute(),
+      };
       match.events.push(event);
       renderLog();
       if (scorer) {
-        openPicker("Assist? (optional)", (assister) => {
-          event.assist = assister || null;
+        openGoalTypePicker((goalType) => {
+          event.goal_type = goalType || "open_play";
           renderLog();
+          // Penalties are essentially never credited with an assist, so
+          // skip that prompt for them and keep live recording quick.
+          if (event.goal_type !== "penalty") {
+            openPicker("Assist? (optional)", (assister) => {
+              event.assist = assister || null;
+              renderLog();
+            });
+          }
         });
       }
     });
@@ -788,6 +833,7 @@ async function syncMatch(m) {
         player_id: await resolvePlayerId(headers, e.player),
         event_type: e.type === "goal_them" ? "own_goal" : e.type,
         minute: e.minute,
+        goal_type: e.type === "goal" ? e.goal_type || "open_play" : null,
       });
       if (e.assist) {
         eventRows.push({
@@ -838,6 +884,7 @@ async function generateAndSaveReport(matchId, m) {
     event_type: e.type === "goal_them" ? "own_goal" : e.type,
     minute: e.minute,
     player_name: e.player || null,
+    goal_type: e.type === "goal" ? e.goal_type || "open_play" : null,
   }));
 
   let reportText;

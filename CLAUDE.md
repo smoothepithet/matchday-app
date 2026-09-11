@@ -157,7 +157,12 @@ served from.
 - `matches` — `opposition`, `match_date`, `venue` (home/away), `competition`,
   `our_score`, `their_score`, `status`
 - `events` — one row per goal / assist / save / own_goal, linked to a match
-  and (eventually) a player
+  and (eventually) a player. Goal events also carry `goal_type`
+  (`open_play` / `free_kick` / `penalty`, null for non-goal events) —
+  added via `alter table events add column if not exists ...` rather than
+  folded into the original `create table`, so re-running `schema.sql`
+  against an already-initialized database picks it up (same migration
+  pattern as `awards`/`reports`, see `self-host/README.md` step 13).
 - `awards` — `award_type` (`training_potw` / `managers_potw` /
   `parents_potw` / `player_of_month`), `player_id`, `period_date`,
   `notes`. **Not** tied to a match — the two "Player of the Match"
@@ -186,7 +191,10 @@ every data call; the anon key alone can no longer read or write anything.
 Working:
 - Recorder: squad management (add/remove players with name + shirt number,
   persisted in `localStorage` under key `squad`), match setup, live
-  scoreboard, goal/assist/save capture via player picker, undo,
+  scoreboard, goal/assist/save capture via player picker, goal type
+  (`openGoalTypePicker()` — Open Play/Free Kick/Penalty, defaults to Open
+  Play on skip, only asked once a scorer is picked; the assist prompt is
+  skipped entirely for penalties), undo,
   half-time/stoppage pause (`togglePause()` — pauses the clock, disables
   the scoring buttons, tracks `match.totalPausedMs` so resuming doesn't
   count real-world break time as match time), offline queue
@@ -220,6 +228,10 @@ Working:
   this runs, so a failure here just means that one match ends up without
   a generated report. `generate_report.py` (manual, Claude-based) still
   exists as a standalone fallback/reference but isn't part of this flow.
+  Each goal's `goal_type` is included in the event log sent to the
+  prompt (as "— penalty"/"— free kick", omitted for open play) so
+  penalties/free kicks can show up as standout moments in the generated
+  text.
 - Auth: both recorder and dashboard are gated behind a login screen backed
   by Supabase Auth (single shared coach email/password account, created
   manually via Supabase Dashboard → Authentication → Users). Session

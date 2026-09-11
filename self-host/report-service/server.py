@@ -70,11 +70,15 @@ def verify_jwt(token: str) -> dict:
     return payload
 
 
+GOAL_TYPE_LABELS = {"open_play": "open play", "free_kick": "free kick", "penalty": "penalty"}
+
+
 def build_prompt(match: dict) -> str:
     events = match.get("events") or []
     events_text = "\n".join(
         f"- Minute {e.get('minute', '?')}: {e.get('event_type')}"
         + (f" ({e['player_name']})" if e.get("player_name") else "")
+        + (f" — {GOAL_TYPE_LABELS[e['goal_type']]}" if e.get("goal_type") and e["goal_type"] != "open_play" else "")
         for e in events
     )
     return f"""You are writing a short, upbeat match report for {TEAM_NAME}, a kids'
