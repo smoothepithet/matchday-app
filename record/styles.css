@@ -579,6 +579,39 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   line-height: 1.5;
 }
 
+/* --- Awards screen form fields — same look as .setup's, but that
+   selector never matched here since this screen uses .squad-screen,
+   not .setup. Named/scoped separately (rather than just adding
+   .squad-screen to the .setup selectors) to avoid interacting with
+   .add-player-row input's own more specific sizing rules. --- */
+.award-label {
+  display: block;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--silver);
+  margin: 16px 0 6px;
+}
+
+.award-field {
+  width: 100%;
+  height: 46px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--steel-light);
+  background: var(--panel);
+  color: var(--white);
+  font-size: 16px;
+}
+
+/* Same iOS Safari fix as .setup input[type="date"] — see that rule's
+   comment for why this is needed. */
+.award-field[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  line-height: 46px;
+}
+
 .hidden {
   display: none !important;
 }
