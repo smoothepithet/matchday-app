@@ -388,8 +388,8 @@ Tunnel; local-network testing only.
      -d '{"email":"dev@example.com","password":"choose-a-password","email_confirm":true}'
    ```
 
-**Using it** — from the browser console, on either the deployed site or
-a local copy served via `python -m http.server` (never by editing
+**Using it on desktop** — browser console, on either the deployed site
+or a local copy served via `python -m http.server` (never by editing
 `app.js`/`dashboard/app.js` directly, so there's no risk of accidentally
 committing dev config to production):
 ```js
@@ -403,6 +403,26 @@ localStorage.removeItem("dev_supabase_url");
 localStorage.removeItem("dev_supabase_anon_key");
 location.reload();
 ```
+
+**Using it on mobile** — DevTools isn't practical on a phone, so there's
+a URL-based switch instead. Build this URL once (desktop, where pasting
+the key is easy), then save it as a home-screen bookmark/icon (name it
+something like "Matchday DEV" so it's visually distinct from the real
+app icon):
+```
+https://wyrleyrockets.uk/?dev=1&key=<dev anon key, URL-encoded>
+```
+Tapping that icon sets the same `localStorage` override and immediately
+cleans the key out of the visible address bar. A second icon pointed at
+`https://wyrleyrockets.uk/?dev=0` clears it back to prod — or just use
+the normal, unmodified app icon, since prod is the default when no
+override is set.
+
+One trade-off worth knowing: the dev anon key ends up saved inside that
+one bookmarked URL. That's an acceptable risk here — the dev key only
+grants access to the empty, isolated `matchday_dev` database, never
+real season data — but don't reuse this pattern for anything that could
+expose the prod key the same way.
 
 **Stopping it** (frees the two extra containers when not in use):
 ```bash

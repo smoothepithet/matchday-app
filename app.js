@@ -1,8 +1,36 @@
 // ---------------------------------------------------------------
+// Dev-mode URL switch — for mobile, where opening DevTools isn't
+// practical. Visiting ?dev=1&key=<dev anon key> once sets the same
+// localStorage override the console method below would, then cleans
+// the URL so the key doesn't linger in the address bar. Save a URL
+// like this as a home-screen bookmark/icon (e.g. named "Matchday DEV")
+// and tapping it switches into dev mode with no typing required.
+// ?dev=0 clears the override back to prod (no key needed for that).
+// ---------------------------------------------------------------
+(function () {
+  const params = new URLSearchParams(location.search);
+  if (!params.has("dev")) return;
+  if (params.get("dev") === "0") {
+    localStorage.removeItem("dev_supabase_url");
+    localStorage.removeItem("dev_supabase_anon_key");
+  } else {
+    const key = params.get("key");
+    if (key) {
+      localStorage.setItem("dev_supabase_url", "https://matchday-api-dev.shadowlan.org");
+      localStorage.setItem("dev_supabase_anon_key", key);
+    }
+  }
+  params.delete("dev");
+  params.delete("key");
+  history.replaceState({}, "", location.pathname + (params.toString() ? "?" + params.toString() : ""));
+})();
+
+// ---------------------------------------------------------------
 // CONFIG — points at the self-hosted backend (see self-host/README.md).
-// Falls back to a dev backend when set via the browser console, so you
-// can test against matchday-api-dev.shadowlan.org without ever editing
-// or committing this file:
+// Falls back to a dev backend when set via the URL switch above or the
+// browser console, so you can test against
+// matchday-api-dev.shadowlan.org without ever editing or committing
+// this file:
 //   localStorage.setItem("dev_supabase_url", "https://matchday-api-dev.shadowlan.org");
 //   localStorage.setItem("dev_supabase_anon_key", "<dev anon key>");
 //   location.reload();

@@ -1,6 +1,28 @@
-// Same project as recorder/app.js — keep these two in sync. Falls back
-// to a dev backend when set via the browser console — see the comment
-// in app.js for the localStorage keys.
+// Same project as recorder/app.js — keep these two in sync.
+
+// Dev-mode URL switch (see app.js for the full comment) — visiting
+// ?dev=1&key=<dev anon key> once sets the localStorage override for
+// mobile testing without DevTools; ?dev=0 clears it.
+(function () {
+  const params = new URLSearchParams(location.search);
+  if (!params.has("dev")) return;
+  if (params.get("dev") === "0") {
+    localStorage.removeItem("dev_supabase_url");
+    localStorage.removeItem("dev_supabase_anon_key");
+  } else {
+    const key = params.get("key");
+    if (key) {
+      localStorage.setItem("dev_supabase_url", "https://matchday-api-dev.shadowlan.org");
+      localStorage.setItem("dev_supabase_anon_key", key);
+    }
+  }
+  params.delete("dev");
+  params.delete("key");
+  history.replaceState({}, "", location.pathname + (params.toString() ? "?" + params.toString() : ""));
+})();
+
+// Falls back to a dev backend when set via the URL switch above or the
+// browser console — see the comment in app.js for the localStorage keys.
 const CONFIG = {
   SUPABASE_URL: localStorage.getItem("dev_supabase_url") || "https://matchday-api.shadowlan.org",
   SUPABASE_ANON_KEY: localStorage.getItem("dev_supabase_anon_key") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6Im1hdGNoZGF5LXNlbGYtaG9zdCIsImlhdCI6MTc4OTExOTc2MSwiZXhwIjoyMTA0Njk1NzYxfQ.L9_Tlu6kLFrjv-EUFrGTl6i2yUNCWopLyX0gkSJS9S8",  // your anon/public key
