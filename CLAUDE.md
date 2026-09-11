@@ -343,6 +343,18 @@ Working:
   `schema.sql` change, run `self-host/deploy.sh` (or the manual
   migration steps) on the live DB *before* relying on the matching app
   change in production.
+- That same fix surfaced a second, independent, longer-standing bug
+  once it stopped being silently swallowed: PostgREST's bulk insert
+  requires every object in a JSON array to have identical keys ("All
+  object keys must match") — but the `assist` and `appearance` rows in
+  `syncMatch()`'s `eventRows` were missing the `goal_type` key that
+  `goal`/`save`/`goal_against` rows always carry, so any batch mixing
+  shapes (i.e. almost every real match, now that `appearance` rows are
+  always present) got rejected outright. This was very likely happening
+  silently ever since `goal_type` was added, not just since
+  `appearance` — the missing `res.ok` check just never reported it.
+  Fixed by giving every row in `eventRows` the same keys, `goal_type:
+  null` where it doesn't apply.
 
 Known gaps (in priority order for next work):
 1. **No automated social posting.** Meta (Instagram/Facebook) requires app

@@ -919,6 +919,11 @@ async function syncMatch(m) {
           player_id: await resolvePlayerId(headers, e.assist),
           event_type: "assist",
           minute: e.minute,
+          // PostgREST's bulk insert requires every object in the array to
+          // have identical keys ("All object keys must match") — every
+          // other row here carries goal_type, so this one needs the key
+          // present (as null) too, not just omitted.
+          goal_type: null,
         });
       }
     }
@@ -936,6 +941,7 @@ async function syncMatch(m) {
         player_id: await resolvePlayerId(headers, name),
         event_type: "appearance",
         minute: null,
+        goal_type: null, // see the comment on the assist row above
       });
     }
 
