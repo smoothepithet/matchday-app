@@ -491,14 +491,26 @@ unauthenticated way for anyone to burn through the Ollama Cloud quota.
    docker compose exec postgres psql -U postgres -d matchday -c "NOTIFY pgrst, 'reload schema';"
    ```
    (Running the whole `schema.sql` again is safe — every statement in it
-   is `create table if not exists` / `create or replace view`.)
+   is `create table if not exists` / `create or replace view` /
+   `alter table ... add column if not exists`, so it applies cleanly on
+   top of whatever's already there.)
 4. If you're running the dev overlay too, `report-service-dev` in
    `docker-compose.dev.yml` reuses the same `OLLAMA_API_KEY`/
    `OLLAMA_MODEL` from `.env` (no separate dev key needed — it's an
    external API call, not local data) but verifies tokens against
    `DEV_JWT_SECRET` instead, so a dev session can't call the prod
-   router or vice versa. Apply the same `reports` table migration to
-   `matchday_dev`.
+   router or vice versa. Apply the same migration to `matchday_dev`.
+
+**Convenience scripts** — `deploy.sh` and `deploy-dev.sh` wrap steps 2-4
+above (`docker compose up -d`, apply `schema.sql`, reload the schema
+cache) into one command each, since this is exactly the sequence
+needed after every future schema change too, not just this one:
+```bash
+./deploy.sh      # prod: docker compose up -d + migrate matchday
+./deploy-dev.sh  # dev: docker compose -f ... -f docker-compose.dev.yml up -d + migrate matchday_dev
+```
+Both are safe to rerun any time — they don't drop or reset anything,
+just apply whatever's new in `schema.sql`.
 
 Report generation is best-effort only and never blocks or re-queues a
 match: by the time it runs, `syncMatch()` has already succeeded, so a

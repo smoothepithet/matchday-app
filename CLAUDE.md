@@ -308,8 +308,9 @@ deployed GitHub Pages site.
 
 ## Suggested next step
 
-Deploy `self-host/report-service` (get an Ollama Cloud API key, apply the
-`reports` table migration to the live DB, `docker compose up -d`), then
-play a real match end-to-end and confirm a report actually shows up on
-the dashboard after "End Match". After that, gap #1 above (social
-posting) is the next open item.
+Deploy `self-host/report-service` (get an Ollama Cloud API key, then
+`self-host/deploy.sh` — `docker compose up -d` plus the `schema.sql`
+migration and PostgREST schema reload in one command, `deploy-dev.sh`
+for the dev overlay), then play a real match end-to-end and confirm a
+report actually shows up on the dashboard after "End Match". After
+that, gap #1 above (social posting) is the next open item.

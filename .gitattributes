@@ -1,0 +1,4 @@
+# Shell scripts run on Linux (Unraid) — force LF regardless of the
+# committing machine's core.autocrlf, so a Windows-side edit can never
+# silently corrupt the shebang line with CRLF.
+*.sh text eol=lf
