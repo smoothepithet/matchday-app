@@ -318,11 +318,14 @@ async function renderAwardsList() {
 }
 
 // ---------------------------------------------------------------
-// Clock (minutes only — good enough for a match report)
+// Clock (minutes only — good enough for a match report). totalPausedMs
+// accumulates every half-time/stoppage break so the clock and event
+// minutes correctly exclude paused time rather than just running
+// straight off wall-clock time since kickoff.
 // ---------------------------------------------------------------
 function startClock() {
   clockInterval = setInterval(() => {
-    const elapsedMs = Date.now() - match.startedAt;
+    const elapsedMs = Date.now() - match.startedAt - match.totalPausedMs;
     const mins = Math.floor(elapsedMs / 60000);
     const secs = Math.floor((elapsedMs % 60000) / 1000);
     document.getElementById("match-clock").textContent =
@@ -331,7 +334,38 @@ function startClock() {
 }
 
 function currentMinute() {
-  return Math.max(1, Math.floor((Date.now() - match.startedAt) / 60000));
+  return Math.max(1, Math.floor((Date.now() - match.startedAt - match.totalPausedMs) / 60000));
+}
+
+// ---------------------------------------------------------------
+// Half-time / stoppage pause — toggles the clock and disables the
+// scoring buttons so a stray pitch-side tap during the break can't
+// record a phantom event. Re-usable for any stoppage, not just the
+// official half-time break (injuries etc. are common in kids football).
+// ---------------------------------------------------------------
+function togglePause() {
+  const pauseBtn = document.getElementById("btn-pause");
+  const scoringBtns = [
+    document.getElementById("btn-goal-us"),
+    document.getElementById("btn-save"),
+    document.getElementById("btn-goal-them"),
+  ];
+
+  if (match.pausedAt) {
+    // resuming
+    match.totalPausedMs += Date.now() - match.pausedAt;
+    match.pausedAt = null;
+    startClock();
+    pauseBtn.textContent = "⏸ Half Time";
+    scoringBtns.forEach((b) => (b.disabled = false));
+  } else {
+    // pausing
+    match.pausedAt = Date.now();
+    clearInterval(clockInterval);
+    document.getElementById("match-clock").textContent = "HALF TIME";
+    pauseBtn.textContent = "▶ Start 2nd Half";
+    scoringBtns.forEach((b) => (b.disabled = true));
+  }
 }
 
 // ---------------------------------------------------------------
@@ -526,6 +560,8 @@ function initApp() {
       status: "in_progress",
       events: [],       // { id, type, player, number, assist, minute }
       startedAt: Date.now(),
+      totalPausedMs: 0, // accumulated half-time/stoppage duration, excluded from the clock
+      pausedAt: null,   // timestamp the current pause began, or null if running
     };
 
     document.getElementById("setup").classList.add("hidden");
@@ -535,10 +571,23 @@ function initApp() {
         ? `${CONFIG.TEAM_NAME} vs ${match.opposition}`
         : `${match.opposition} vs ${CONFIG.TEAM_NAME}`;
 
+    // Defensive reset in case a previous match ended mid-pause — the
+    // pause state itself is on the new match object either way, but
+    // the button text/disabled state is DOM state that would otherwise
+    // carry over from whatever it was left showing.
+    document.getElementById("btn-pause").textContent = "⏸ Half Time";
+    [
+      document.getElementById("btn-goal-us"),
+      document.getElementById("btn-save"),
+      document.getElementById("btn-goal-them"),
+    ].forEach((b) => (b.disabled = false));
+
     startClock();
     renderScore();
     renderLog();
   });
+
+  document.getElementById("btn-pause").addEventListener("click", togglePause);
 
   document.getElementById("btn-goal-us").addEventListener("click", () => {
     match.our_score += 1;

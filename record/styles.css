@@ -247,6 +247,13 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   border: 2px dashed var(--silver);
 }
 
+.action-btn.pause-btn {
+  background: var(--steel);
+  color: var(--white);
+  border: 1px solid var(--steel-light);
+  grid-column: span 2;
+}
+
 .action-btn.end-match {
   background: transparent;
   color: var(--silver);
