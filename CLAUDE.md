@@ -174,8 +174,11 @@ every data call; the anon key alone can no longer read or write anything.
 Working:
 - Recorder: squad management (add/remove players with name + shirt number,
   persisted in `localStorage` under key `squad`), match setup, live
-  scoreboard, goal/assist/save capture via player picker, undo, offline
-  queue (`localStorage` key `sync_queue`), best-effort sync to Supabase REST
+  scoreboard, goal/assist/save capture via player picker, undo,
+  half-time/stoppage pause (`togglePause()` — pauses the clock, disables
+  the scoring buttons, tracks `match.totalPausedMs` so resuming doesn't
+  count real-world break time as match time), offline queue
+  (`localStorage` key `sync_queue`), best-effort sync to Supabase REST
   API on match end and on `online` event. Deployed to GitHub Pages.
 - Awards screen (reachable from setup, alongside Manage Squad): records
   Training/Manager's/Parents' Player of the Week and Player of the
