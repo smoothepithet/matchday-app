@@ -348,3 +348,63 @@ This only covers the sign-in endpoint — `/auth/v1/admin/*` (used once,
 manually, to create the coach account) is already gated by the
 `service_role` key rather than a password, so it doesn't need the same
 treatment.
+
+## 12. Dev environment (test without touching live data)
+
+A second `postgrest`/`gotrue` pair, sharing the same Postgres server as
+prod but pointed at a separate `matchday_dev` database, its own
+hostname, and its own JWT secret — so a dev token can never accidentally
+work against prod or vice versa. Never exposed via the Cloudflare
+Tunnel; local-network testing only.
+
+**One-time setup:**
+
+1. Add `DEV_HOSTNAME`, `POSTGRES_DEV_DB`, `DEV_JWT_SECRET` to `.env`
+   (see `.env.example` — generate `DEV_JWT_SECRET` the same way as
+   `JWT_SECRET`, but make sure it's a *different* value).
+2. Local DNS entry for `matchday-api-dev.shadowlan.org` → your Unraid
+   box's LAN IP, same as you did for the prod hostname.
+3. Create the dev database and apply the schema (roles like
+   `anon`/`authenticated` are cluster-wide already, from `00-roles.sh` —
+   no need to recreate them):
+   ```bash
+   docker compose exec postgres psql -U postgres -c "CREATE DATABASE matchday_dev;"
+   docker compose exec postgres psql -U postgres -d matchday_dev -c "create schema if not exists auth;"
+   docker compose exec -T postgres psql -U postgres -d matchday_dev < ../schema.sql
+   ```
+4. Start the dev overlay alongside the main stack:
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+   ```
+5. Mint dev keys and create a dev test account, same as the main setup
+   (steps 4-5) but against `$DEV_JWT_SECRET` and `matchday-api-dev.shadowlan.org`:
+   ```bash
+   docker run --rm -v "$(pwd)":/app -w /app python:3-alpine python mint_jwt.py anon "$DEV_JWT_SECRET" 10
+   docker run --rm -v "$(pwd)":/app -w /app python:3-alpine python mint_jwt.py service_role "$DEV_JWT_SECRET" 10
+
+   curl -X POST "https://matchday-api-dev.shadowlan.org/auth/v1/admin/users" \
+     -H "Authorization: Bearer <dev service_role key>" \
+     -H "Content-Type: application/json" \
+     -d '{"email":"dev@example.com","password":"choose-a-password","email_confirm":true}'
+   ```
+
+**Using it** — from the browser console, on either the deployed site or
+a local copy served via `python -m http.server` (never by editing
+`app.js`/`dashboard/app.js` directly, so there's no risk of accidentally
+committing dev config to production):
+```js
+localStorage.setItem("dev_supabase_url", "https://matchday-api-dev.shadowlan.org");
+localStorage.setItem("dev_supabase_anon_key", "<dev anon key>");
+location.reload();
+```
+Switch back to prod:
+```js
+localStorage.removeItem("dev_supabase_url");
+localStorage.removeItem("dev_supabase_anon_key");
+location.reload();
+```
+
+**Stopping it** (frees the two extra containers when not in use):
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml stop postgrest-dev gotrue-dev
+```

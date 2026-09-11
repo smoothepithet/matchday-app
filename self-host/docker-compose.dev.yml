@@ -1,0 +1,77 @@
+# Dev environment overlay — a second postgrest/gotrue pair pointed at a
+# separate database (matchday_dev), sharing the same Postgres server as
+# production (cheap: this whole dataset is tiny). Never exposed via the
+# Cloudflare Tunnel — local-network testing only.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#
+# See self-host/README.md's "Dev environment" section for one-time setup
+# (creating matchday_dev, minting dev keys, creating a dev test account).
+
+services:
+  postgrest-dev:
+    image: postgrest/postgrest:v16.2
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${AUTHENTICATOR_PASSWORD}@postgres:5432/${POSTGRES_DEV_DB:-matchday_dev}
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${DEV_JWT_SECRET}
+      PGRST_JWT_AUD: authenticated
+    networks:
+      - matchday
+      - traefik
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${TRAEFIK_NETWORK}
+      - traefik.http.routers.matchday-rest-dev.rule=Host(`${DEV_HOSTNAME}`) && PathPrefix(`/rest/v1`)
+      - traefik.http.routers.matchday-rest-dev.entrypoints=websecure
+      - traefik.http.routers.matchday-rest-dev.tls.certresolver=${TRAEFIK_CERTRESOLVER}
+      - traefik.http.middlewares.matchday-rest-dev-strip.stripprefix.prefixes=/rest/v1
+      - traefik.http.middlewares.matchday-rest-dev-cors.headers.accessControlAllowOriginList=*
+      - traefik.http.middlewares.matchday-rest-dev-cors.headers.accessControlAllowMethods=GET,POST,PATCH,DELETE,OPTIONS
+      - traefik.http.middlewares.matchday-rest-dev-cors.headers.accessControlAllowHeaders=*
+      - traefik.http.middlewares.matchday-rest-dev-cors.headers.accessControlMaxAge=86400
+      - traefik.http.middlewares.matchday-rest-dev-cors.headers.addVaryHeader=true
+      - traefik.http.middlewares.matchday-rest-dev-cors.headers.customResponseHeaders.Access-Control-Allow-Private-Network=true
+      - traefik.http.routers.matchday-rest-dev.middlewares=matchday-rest-dev-cors,matchday-rest-dev-strip
+      - traefik.http.services.matchday-rest-dev.loadbalancer.server.port=3000
+
+  gotrue-dev:
+    image: supabase/gotrue:v2.196.0
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DEV_DB:-matchday_dev}?options=-c%20search_path%3Dauth
+      GOTRUE_SITE_URL: https://${DEV_HOSTNAME}
+      GOTRUE_DISABLE_SIGNUP: "true"
+      GOTRUE_JWT_SECRET: ${DEV_JWT_SECRET}
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_EXP: "3600"
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      API_EXTERNAL_URL: https://${DEV_HOSTNAME}/auth/v1
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: "9999"
+    networks:
+      - matchday
+      - traefik
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${TRAEFIK_NETWORK}
+      - traefik.http.routers.matchday-auth-dev.rule=Host(`${DEV_HOSTNAME}`) && PathPrefix(`/auth/v1`)
+      - traefik.http.routers.matchday-auth-dev.entrypoints=websecure
+      - traefik.http.routers.matchday-auth-dev.tls.certresolver=${TRAEFIK_CERTRESOLVER}
+      - traefik.http.middlewares.matchday-auth-dev-strip.stripprefix.prefixes=/auth/v1
+      - traefik.http.middlewares.matchday-auth-dev-cors.headers.accessControlAllowOriginList=*
+      - traefik.http.middlewares.matchday-auth-dev-cors.headers.accessControlAllowMethods=GET,POST,PATCH,DELETE,OPTIONS
+      - traefik.http.middlewares.matchday-auth-dev-cors.headers.accessControlAllowHeaders=*
+      - traefik.http.middlewares.matchday-auth-dev-cors.headers.accessControlMaxAge=86400
+      - traefik.http.middlewares.matchday-auth-dev-cors.headers.addVaryHeader=true
+      - traefik.http.middlewares.matchday-auth-dev-cors.headers.customResponseHeaders.Access-Control-Allow-Private-Network=true
+      - traefik.http.routers.matchday-auth-dev.middlewares=matchday-auth-dev-cors,matchday-auth-dev-strip
+      - traefik.http.services.matchday-auth-dev.loadbalancer.server.port=9999

@@ -1,12 +1,18 @@
 // ---------------------------------------------------------------
-// CONFIG — fill these in once you've created your Supabase project
-// and run supabase/schema.sql. Until then, the app still works
-// fully offline and just queues events locally.
+// CONFIG — points at the self-hosted backend (see self-host/README.md).
+// Falls back to a dev backend when set via the browser console, so you
+// can test against matchday-api-dev.shadowlan.org without ever editing
+// or committing this file:
+//   localStorage.setItem("dev_supabase_url", "https://matchday-api-dev.shadowlan.org");
+//   localStorage.setItem("dev_supabase_anon_key", "<dev anon key>");
+//   location.reload();
+// To switch back: localStorage.removeItem("dev_supabase_url"),
+// localStorage.removeItem("dev_supabase_anon_key"), reload.
 // ---------------------------------------------------------------
 const CONFIG = {
   TEAM_NAME: "Wyrley Rockets",
-  SUPABASE_URL: "https://matchday-api.shadowlan.org",       
-  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6Im1hdGNoZGF5LXNlbGYtaG9zdCIsImlhdCI6MTc4OTExOTc2MSwiZXhwIjoyMTA0Njk1NzYxfQ.L9_Tlu6kLFrjv-EUFrGTl6i2yUNCWopLyX0gkSJS9S8",  // your anon/public key
+  SUPABASE_URL: localStorage.getItem("dev_supabase_url") || "https://matchday-api.shadowlan.org",
+  SUPABASE_ANON_KEY: localStorage.getItem("dev_supabase_anon_key") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6Im1hdGNoZGF5LXNlbGYtaG9zdCIsImlhdCI6MTc4OTExOTc2MSwiZXhwIjoyMTA0Njk1NzYxfQ.L9_Tlu6kLFrjv-EUFrGTl6i2yUNCWopLyX0gkSJS9S8",  // your anon/public key
 };
 
 // ---------------------------------------------------------------

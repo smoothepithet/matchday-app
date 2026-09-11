@@ -194,9 +194,13 @@ Known gaps (in priority order for next work):
 - `localStorage` is the local persistence layer for the recorder and
   dashboard (this is a real deployable app, not a Claude.ai artifact — the
   usual "no localStorage" restriction doesn't apply here).
-- Supabase config (`SUPABASE_URL`, `SUPABASE_ANON_KEY`) lives as a `CONFIG`
-  object at the top of `app.js` and `dashboard/app.js`. Same values go in
-  both places.
+- Backend config (`SUPABASE_URL`, `SUPABASE_ANON_KEY` — named for the
+  Supabase-shaped API they still point at, even though the backend is
+  now self-hosted) lives as a `CONFIG` object at the top of `app.js` and
+  `dashboard/app.js`. Same values go in both places. Both fall back to
+  `localStorage` overrides (`dev_supabase_url`/`dev_supabase_anon_key`)
+  before the hardcoded prod values — see `self-host/README.md` step 12
+  for testing against the dev backend without ever editing these files.
 - The auth helper (`getSession`/`setSession`/`clearSession`/`signIn`/
   `refreshSession`/`ensureFreshSession`) is duplicated verbatim in both
   `app.js` files, same convention as `CONFIG` — no shared module, since

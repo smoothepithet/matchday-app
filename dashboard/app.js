@@ -1,7 +1,9 @@
-// Same project as recorder/app.js — keep these two in sync
+// Same project as recorder/app.js — keep these two in sync. Falls back
+// to a dev backend when set via the browser console — see the comment
+// in app.js for the localStorage keys.
 const CONFIG = {
-  SUPABASE_URL: "https://matchday-api.shadowlan.org",       
-  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6Im1hdGNoZGF5LXNlbGYtaG9zdCIsImlhdCI6MTc4OTExOTc2MSwiZXhwIjoyMTA0Njk1NzYxfQ.L9_Tlu6kLFrjv-EUFrGTl6i2yUNCWopLyX0gkSJS9S8",  // your anon/public key
+  SUPABASE_URL: localStorage.getItem("dev_supabase_url") || "https://matchday-api.shadowlan.org",
+  SUPABASE_ANON_KEY: localStorage.getItem("dev_supabase_anon_key") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6Im1hdGNoZGF5LXNlbGYtaG9zdCIsImlhdCI6MTc4OTExOTc2MSwiZXhwIjoyMTA0Njk1NzYxfQ.L9_Tlu6kLFrjv-EUFrGTl6i2yUNCWopLyX0gkSJS9S8",  // your anon/public key
 };
 
 // ---------------------------------------------------------------
