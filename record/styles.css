@@ -1,7 +1,13 @@
 /* Wyrley Rockets — Matchday Recorder
-   Design tokens — team colours are black & white, rocket-launch motif.
+   Design tokens — black, white & grey base with red as the one accent
+   colour (added when the club crest came in), rocket-launch motif.
    Palette: void #000000 (base), panel #161616 (surfaces), white #FFFFFF (primary),
-            silver #B5B5B5 (secondary text), steel #2A2A2A (borders/dividers)
+            silver #B5B5B5 (secondary text), steel #2A2A2A (borders/dividers),
+            red #D71920 (accent — "our team"/primary-action colour; used
+            deliberately, not scattered: Goal (Us), our score digit, the
+            scoreboard's frame, and primary CTAs. "Them"/secondary actions
+            stay on the neutral white/grey so the two read distinctly at
+            a glance during a live match.)
    Type: display = condensed system bold (scoreboard signage feel),
          body = system-ui, digits = tabular monospace (LED scoreboard)
    Signature: scoreboard panel with a rocket-trail chevron border; the brand
@@ -15,6 +21,8 @@
   --silver: #b5b5b5;
   --steel: #2a2a2a;
   --steel-light: #3d3d3d;
+  --red: #d71920;
+  --red-dark: #a30f17;
 
   /* Radius scale — was scattered literal values (6/8/10/12/14/18px)
      with no clear system; consolidated to four sizes used consistently. */
@@ -138,7 +146,7 @@ input:focus-visible, select:focus-visible, button:focus-visible {
 /* --- Scoreboard signature element --- */
 .scoreboard {
   background: var(--panel);
-  border-bottom: 3px solid var(--white);
+  border-bottom: 3px solid var(--red);
   padding: 18px 16px 22px;
   text-align: center;
   position: relative;
@@ -181,6 +189,13 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   min-width: 1.2em;
 }
 
+/* Our score reads in the team's red; theirs stays neutral white — same
+   at-a-glance distinction as the Goal (Us)/Goal (Them) buttons below. */
+.scoreboard #score-us {
+  color: var(--red);
+  text-shadow: 0 0 14px rgba(215, 25, 32, 0.5);
+}
+
 .scoreboard .versus {
   font-size: 20px;
   color: var(--silver);
@@ -215,8 +230,8 @@ input:focus-visible, select:focus-visible, button:focus-visible {
 }
 
 .action-btn.goal-us {
-  background: var(--white);
-  color: var(--void);
+  background: var(--red);
+  color: var(--white);
   grid-column: span 2;
 }
 
@@ -414,8 +429,8 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   padding: 16px;
   border-radius: var(--radius-lg);
   border: none;
-  background: var(--white);
-  color: var(--void);
+  background: var(--red);
+  color: var(--white);
   font-weight: 800;
   font-size: 17px;
   text-transform: uppercase;
@@ -437,7 +452,7 @@ input:focus-visible, select:focus-visible, button:focus-visible {
 
 .error-banner {
   background: var(--panel);
-  border: 1px solid var(--white);
+  border: 1px solid var(--red);
   border-radius: var(--radius-md);
   padding: 10px 12px;
   margin-top: 14px;
@@ -508,8 +523,8 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   padding: 12px 16px;
   border-radius: var(--radius-md);
   border: none;
-  background: var(--white);
-  color: var(--void);
+  background: var(--red);
+  color: var(--white);
   font-weight: 800;
   cursor: pointer;
 }

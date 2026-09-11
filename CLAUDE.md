@@ -33,22 +33,35 @@ build-output path).
 
 ## Design system
 
-Team colours are strictly **black, white, and grey** — no other accent colour.
-Rocket-launch motif carried through small touches (🚀 emoji, diagonal
-"vapour trail" stripe texture on the brand strip and scoreboard top border,
-chevron/dashed borders) rather than literal rocket illustrations.
+Base is **black, white, and grey**, plus **red** as one deliberate accent
+colour (added once a real club crest arrived — see below). Red is used
+purposefully, not scattered: it means "our team" / primary action —
+the Goal (Us) button, our score digit, the scoreboard's frame, and
+primary CTAs (Sign In, Kick Off, Add Player). "Them"/secondary actions
+stay on the neutral white/grey palette so the two read distinctly at a
+glance during a live match. Rocket-launch motif carried through small
+touches in the UI itself (🚀 emoji, diagonal "vapour trail" stripe
+texture on the brand strip and scoreboard top border, chevron/dashed
+borders) rather than literal rocket illustrations there — the one
+deliberate exception is the actual club crest (`record/icon-*.png`,
+used as the PWA home-screen icon), which is a real illustrated rocket;
+that's a finished badge asset, not a UI touch, so the "no literal
+illustrations" rule was never meant to cover it.
 
 Tokens (defined at the top of `record/styles.css`, duplicated inline in
 `dashboard/index.html` and `preview.html` — keep all three in sync if you
-change them):
+change them; `--red`/`--red-dark` are new as of the crest/restyle and
+**not yet ported to dashboard/preview**, so they'll be out of sync
+until that happens):
 
 | Token | Value | Use |
 |---|---|---|
 | `--void` | `#000000` | base background |
 | `--panel` | `#161616` | card/panel surfaces |
-| `--white` | `#ffffff` | primary text, primary buttons |
+| `--white` | `#ffffff` | primary text, secondary/neutral buttons |
 | `--silver` | `#b5b5b5` | secondary text |
 | `--steel` / `--steel-light` | `#2a2a2a` / `#3d3d3d` | borders, dividers |
+| `--red` / `--red-dark` | `#d71920` / `#a30f17` | accent — "our team"/primary actions (record/ only so far) |
 
 Type: system font stack throughout (works offline, no CDN dependency).
 Scoreboard digits use `"Courier New"` monospace for a tabular LED-display feel.
