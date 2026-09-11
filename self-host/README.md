@@ -252,7 +252,7 @@ don't need to match or interact in any way; the frontend just calls
 whatever `CONFIG.SUPABASE_URL` points at, regardless of what domain it's
 itself served from.
 
-## 11. Brute-force protection on the login endpoint
+## 11. Brute-force protection on the login endpoint (done)
 
 Self-hosting drops whatever abuse-mitigation Supabase Cloud runs in front
 of its hosted Auth service — worth replacing before relying on this for
@@ -262,17 +262,28 @@ nothing else standing between it and the internet once exposed.
 Once exposed via the Tunnel, traffic to `matchday-api.shadowlan.org`
 always flows through Cloudflare's edge (Tunnel traffic isn't
 optional-proxy like a plain DNS record — it's always proxied), so a
-Cloudflare WAF rate-limiting rule covers this cheaply:
+Cloudflare rate-limiting rule covers this cheaply. Current dashboard
+path: your zone → **Security → Security rules → Create rule → Rate
+limiting rules** (has moved around Cloudflare's dashboard before —
+search "rate limit" if it's not there).
 
-1. Cloudflare dashboard → your zone → **Security → WAF → Rate limiting
-   rules** (exact location has moved around Cloudflare's dashboard
-   before, so search "rate limit" if it's not there).
-2. Create a rule matching: `Hostname equals matchday-api.shadowlan.org`
-   AND `URI Path equals /auth/v1/token`.
-3. Rate: something like 5 requests per 1 minute, per IP.
-4. Action: **Managed Challenge** rather than outright Block — a coach
-   who fat-fingers a password a few times pitch-side gets a challenge,
-   not locked out entirely.
+Match condition: `URI Path equals /auth/v1/token`. No hostname condition
+needed — the rule is already scoped to this one zone, and no other
+subdomain here serves that exact path, so it's unambiguous without one
+(and the rate-limiting rule type's available match fields don't include
+`Hostname` on the Free plan anyway).
+
+**Free plan reality**: rate limiting rules are far more constrained than
+Pro/Business — period, action, and mitigation duration are all fixed
+rather than configurable (no 1-minute window, no Managed Challenge,
+just `10s` period / `Block` action / `10s` duration). Configured as:
+`5` requests per `10s`, per IP → `Block` for `10s`. This is much blunter
+than a proper setup (a patient attacker just needs to stay under 5
+attempts per 10s to never trip it, capping their sustained rate around
+0.5 req/sec rather than stopping them outright) — but for a single
+shared coach account on a grassroots-team app, that's a reasonable,
+proportionate amount of protection, not worth paying for Cloudflare Pro
+to improve on.
 
 This only covers the sign-in endpoint — `/auth/v1/admin/*` (used once,
 manually, to create the coach account) is already gated by the

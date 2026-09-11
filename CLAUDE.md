@@ -81,10 +81,15 @@ Traefik's cert is issued for the hostname, not the IP — without
 explicitly telling `cloudflared` which hostname to validate against, it
 fails cert verification even though the cert itself is perfectly valid.
 
-Since `/auth/v1/token` is now reachable from the whole internet rather
-than just the LAN, the Cloudflare WAF rate-limit rule on it
-(`self-host/README.md` step 11) is the immediate next priority — not
-done yet. Postgres backups (step 8) also still outstanding.
+A Cloudflare rate-limit rule on `/auth/v1/token` is live (step 11) —
+Free plan constraints meant much blunter settings than originally
+planned (no Managed Challenge/1-minute-window options on Free): `5`
+requests per `10s`, per IP → `Block` for `10s`. Still a meaningful
+throttle for a single-shared-account hobby app, just not as strong as a
+paid plan would allow.
+
+Only Postgres backups (step 8) remain outstanding before this fully
+replaces Supabase Cloud.
 
 The backend lives entirely on `matchday-api.shadowlan.org` (the coach's
 existing internal domain) — both for local testing and, later, once
