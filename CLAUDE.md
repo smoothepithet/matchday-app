@@ -393,6 +393,19 @@ Known gaps (in priority order for next work):
   `::-webkit-datetime-edit` part still carries its own line-height/
   padding independent of that, and needs resetting directly too — the
   first fix alone looked complete on some devices but not others.
+- Mobile viewport/PWA fit (`record/styles.css`, top of the file):
+  `.app` uses `100dvh` (with a `100vh` fallback for browsers that don't
+  support it) instead of plain `100vh`, since `100vh` includes the space
+  behind a mobile browser's collapsing address bar and can leave content
+  needing a scroll to reach the bottom even when it should fit. `body`
+  has `env(safe-area-inset-top)` padding alongside the existing bottom
+  inset — needed because `apple-mobile-web-app-status-bar-style:
+  black-translucent` (in `record/index.html`) makes content draw
+  underneath the status bar/notch once installed. `html, body` has
+  `overscroll-behavior-y: contain` so a pitch-side swipe doesn't trigger
+  the browser's pull-to-refresh mid-match, and `button, input, select`
+  has `touch-action: manipulation` so rapid tapping on the match-screen
+  action buttons doesn't trigger double-tap-to-zoom.
 
 ## Testing
 
