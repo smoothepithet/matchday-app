@@ -190,7 +190,10 @@ every data call; the anon key alone can no longer read or write anything.
 
 Working:
 - Recorder: squad management (add/remove players with name + shirt number,
-  persisted in `localStorage` under key `squad`), match setup, live
+  persisted in `localStorage` under key `squad`), match setup (Competition
+  defaults to League rather than an unselected placeholder — the
+  placeholder meant a coach who never touched the dropdown got an empty
+  `competition` value silently saved for every match), live
   scoreboard, goal/assist/save capture via player picker, goal type
   (`openGoalTypePicker()` — Open Play/Free Kick/Penalty, defaults to Open
   Play on skip, only asked once a scorer is picked; the assist prompt is
@@ -208,16 +211,29 @@ Working:
   event as match sync. Shows the 10 most recent awards on the same screen.
 - Dashboard: reads `player_season_stats`, `results_log`, `season_awards`,
   and `reports` (embedding its parent `matches` row for date/opposition/
-  score) directly. Results filterable by venue/result, awards filterable
-  by award type — client-side over the already-fetched data
-  (`allResults`/`allAwards`), not separate queries per filter change.
-  Two tabs (`switchTab()`): Overview (stat tile + Player Stats/Results/
-  Awards panels) and Match Reports (read-only, newest first, no
-  filters). A Results row's score is a clickable `.score-link` whenever
-  that match has a generated report (checked against `reportMatchIds`,
-  a `Set` of `match_id`s built from the `reports` fetch) — clicking it
-  switches to the Reports tab and scrolls/briefly highlights
-  (`showReport()`) the matching card, id'd `report-${match_id}`.
+  score) directly. Results filterable by venue/result/competition,
+  awards filterable by award type — client-side over the already-fetched
+  data (`allResults`/`allAwards`), not separate queries per filter
+  change. Two tabs (`switchTab()`): Overview (stat tiles + Goals per
+  Match chart + Player Stats/Results/Awards panels) and Match Reports
+  (read-only, newest first, no filters). A Results row's score is a
+  clickable `.score-link` whenever that match has a generated report
+  (checked against `reportMatchIds`, a `Set` of `match_id`s built from
+  the `reports` fetch) — clicking it switches to the Reports tab and
+  scrolls/briefly highlights (`showReport()`) the matching card, id'd
+  `report-${match_id}`.
+- Season Record (W/D/L) and Goals per Match chart: both whole-season and
+  filter-independent, same "headline stat" treatment as Clean sheets —
+  computed from `allResults`, not the filtered view. `renderRecord()`
+  reuses the existing `.result-badge` W/D/L letter styling rather than
+  introducing new colors. `renderGoalsChart()` is a hand-rolled SVG bar
+  chart (no charting library, consistent with the rest of the app having
+  no build step) — chronological left-to-right (`results_log` comes back
+  newest-first, reversed for the chart), bars capped at 20 viewBox units
+  thick and shrinking to fit when there are many matches, gridlines/axis
+  labels rounded to nice steps, a `<title>` per bar for native hover
+  tooltips, and x-axis date labels thinned to ~8 evenly spaced ticks so
+  they never overlap regardless of season length.
 - Automatic match reports: pressing "End Match" POSTs the match's events
   to `self-host/report-service` (stdlib-only, no deps), which prompts an
   **Ollama Cloud** model (`OLLAMA_MODEL`, default `gpt-oss:120b` — no

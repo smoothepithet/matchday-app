@@ -158,6 +158,7 @@ document.getElementById("logout-btn").addEventListener("click", () => {
 
 document.getElementById("filter-venue").addEventListener("change", applyResultsFilters);
 document.getElementById("filter-result").addEventListener("change", applyResultsFilters);
+document.getElementById("filter-competition").addEventListener("change", applyResultsFilters);
 document.getElementById("filter-award-type").addEventListener("change", applyAwardsFilters);
 
 // ---------------------------------------------------------------
@@ -200,6 +201,7 @@ async function loadDashboard() {
     document.getElementById("results-empty").classList.remove("hidden");
     document.getElementById("awards-empty").classList.remove("hidden");
     document.getElementById("reports-empty").classList.remove("hidden");
+    document.getElementById("goals-chart-empty").classList.remove("hidden");
     return;
   }
 
@@ -231,6 +233,8 @@ async function loadDashboard() {
     reportMatchIds = new Set((Array.isArray(reports) ? reports : []).map((r) => r.match_id));
     renderStats(stats);
     renderCleanSheets(allResults);
+    renderRecord(allResults);
+    renderGoalsChart(allResults);
     applyResultsFilters();
     applyAwardsFilters();
     renderReports(Array.isArray(reports) ? reports : []);
@@ -244,6 +248,98 @@ async function loadDashboard() {
 function renderCleanSheets(results) {
   const count = results.filter((r) => r.their_score === 0).length;
   document.getElementById("clean-sheets-value").textContent = count;
+}
+
+// Season record (W/D/L) — same whole-season, filter-independent
+// treatment as Clean sheets. Reuses the .result-badge letter styling
+// already established in the Results table rather than introducing a
+// new color per outcome.
+function renderRecord(results) {
+  const counts = { W: 0, D: 0, L: 0 };
+  results.forEach((r) => {
+    if (counts[r.result] !== undefined) counts[r.result]++;
+  });
+  document.getElementById("record-w").textContent = counts.W;
+  document.getElementById("record-d").textContent = counts.D;
+  document.getElementById("record-l").textContent = counts.L;
+}
+
+// Goals-per-match bar chart — hand-rolled SVG (no charting library, in
+// keeping with the rest of the app having no build step/dependencies).
+// Whole-season, chronological left-to-right, filter-independent like
+// Clean sheets/Record above.
+function renderGoalsChart(results) {
+  const svg = document.getElementById("goals-chart");
+  const empty = document.getElementById("goals-chart-empty");
+  svg.innerHTML = "";
+
+  // results_log comes back newest-first; reverse for a left-to-right timeline.
+  const chronological = [...results].reverse();
+  if (!chronological.length) {
+    empty.classList.remove("hidden");
+    return;
+  }
+  empty.classList.add("hidden");
+
+  const width = 600;
+  const height = 200;
+  const marginTop = 10;
+  const marginRight = 10;
+  const marginBottom = 24;
+  const marginLeft = 26;
+  const innerWidth = width - marginLeft - marginRight;
+  const innerHeight = height - marginTop - marginBottom;
+
+  const maxGoals = Math.max(1, ...chronological.map((r) => r.our_score));
+  const step = maxGoals <= 5 ? 1 : Math.ceil(maxGoals / 5);
+  const axisMax = Math.ceil(maxGoals / step) * step;
+
+  const n = chronological.length;
+  const gap = 4;
+  const barWidth = Math.max(2, Math.min(20, (innerWidth - gap * (n - 1)) / n));
+  const actualGap = n > 1 ? (innerWidth - barWidth * n) / (n - 1) : 0;
+
+  const svgNS = "http://www.w3.org/2000/svg";
+  const el = (tag, attrs) => {
+    const node = document.createElementNS(svgNS, tag);
+    Object.entries(attrs).forEach(([k, v]) => node.setAttribute(k, v));
+    return node;
+  };
+
+  // Gridlines + y-axis labels, 0 up to axisMax in `step` increments.
+  for (let v = 0; v <= axisMax; v += step) {
+    const y = marginTop + innerHeight - (v / axisMax) * innerHeight;
+    svg.appendChild(el("line", { x1: marginLeft, x2: width - marginRight, y1: y, y2: y, class: "chart-gridline" }));
+    const label = el("text", { x: marginLeft - 6, y: y + 3, class: "chart-axis-text", "text-anchor": "end" });
+    label.textContent = v;
+    svg.appendChild(label);
+  }
+
+  // At most ~8 x-axis date labels, evenly spaced, so they never overlap
+  // regardless of how many matches are in the season.
+  const labelEvery = Math.max(1, Math.ceil(n / 8));
+
+  chronological.forEach((r, i) => {
+    const x = marginLeft + i * (barWidth + actualGap);
+    const barHeight = Math.max(0, (r.our_score / axisMax) * innerHeight);
+    const y = marginTop + innerHeight - barHeight;
+    const rect = el("rect", { x, y, width: barWidth, height: barHeight, rx: 2, class: "chart-bar" });
+    const title = document.createElementNS(svgNS, "title");
+    title.textContent = `${r.match_date} vs ${r.opposition}: ${r.our_score} scored`;
+    rect.appendChild(title);
+    svg.appendChild(rect);
+
+    if (i % labelEvery === 0) {
+      const label = el("text", {
+        x: x + barWidth / 2,
+        y: height - marginBottom + 14,
+        class: "chart-axis-text",
+        "text-anchor": "middle",
+      });
+      label.textContent = (r.match_date || "").slice(5).replace("-", "/");
+      svg.appendChild(label);
+    }
+  });
 }
 
 const AWARD_LABELS = {
@@ -267,8 +363,12 @@ let reportMatchIds = new Set();
 function applyResultsFilters() {
   const venue = document.getElementById("filter-venue").value;
   const result = document.getElementById("filter-result").value;
+  const competition = document.getElementById("filter-competition").value;
   const filtered = allResults.filter(
-    (r) => (!venue || r.venue === venue) && (!result || r.result === result)
+    (r) =>
+      (!venue || r.venue === venue) &&
+      (!result || r.result === result) &&
+      (!competition || r.competition === competition)
   );
   renderResults(filtered, allResults.length > 0);
 }
@@ -400,6 +500,7 @@ function renderResults(rows, hasAnyData) {
       <td>${r.match_date}</td>
       <td>${r.opposition}</td>
       <td>${r.venue}</td>
+      <td>${r.competition || "—"}</td>
       <td class="num">${scoreCell}</td>
       <td class="num"><span class="result-badge result-${r.result}">${r.result}</span></td>
     `;
