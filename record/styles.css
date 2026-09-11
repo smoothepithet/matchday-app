@@ -350,11 +350,16 @@ body {
   font-size: 16px;
 }
 
-/* Mobile browsers (notably iOS Safari) render the native date-picker
-   chrome with its own intrinsic height that padding alone doesn't
-   fully constrain, making it taller than the other fields despite
-   sharing the same rule above — force it in line explicitly. */
+/* iOS Safari renders native input[type=date] with its own intrinsic
+   chrome that ignores height/line-height entirely - height:46px above
+   doesn't apply to it the way it does every other field. Only fix that
+   reliably works: strip the native appearance so it renders as a plain
+   box like everything else. Tapping still opens the native date picker
+   (that's tied to the input's type, not its appearance) — it just
+   loses the OS's own frame around it, matching our styling instead. */
 .setup input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
   line-height: 46px;
 }
 
