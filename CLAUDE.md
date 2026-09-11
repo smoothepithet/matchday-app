@@ -50,9 +50,11 @@ illustrations" rule was never meant to cover it.
 
 Tokens (defined at the top of `record/styles.css`, duplicated inline in
 `dashboard/index.html` and `preview.html` — keep all three in sync if you
-change them; `--red`/`--red-dark` are new as of the crest/restyle and
-**not yet ported to dashboard/preview**, so they'll be out of sync
-until that happens):
+change them). `--red`/`--red-dark` apply narrowly per context: `record/`
+uses it for "our team"/primary actions throughout; `dashboard/` (a
+read-only stats page with no us-vs-them context) only uses it for the
+Sign In button and login errors — deliberately not on the Win/Draw/Loss
+result badges, where red could misread as "bad" rather than "us":
 
 | Token | Value | Use |
 |---|---|---|
@@ -61,7 +63,7 @@ until that happens):
 | `--white` | `#ffffff` | primary text, secondary/neutral buttons |
 | `--silver` | `#b5b5b5` | secondary text |
 | `--steel` / `--steel-light` | `#2a2a2a` / `#3d3d3d` | borders, dividers |
-| `--red` / `--red-dark` | `#d71920` / `#a30f17` | accent — "our team"/primary actions (record/ only so far) |
+| `--red` / `--red-dark` | `#d71920` / `#a30f17` | accent — "our team"/primary actions (scope varies by page, see above) |
 
 Type: system font stack throughout (works offline, no CDN dependency).
 Scoreboard digits use `"Courier New"` monospace for a tabular LED-display feel.
