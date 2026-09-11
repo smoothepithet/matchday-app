@@ -59,8 +59,24 @@ decided to self-host the backend (Postgres + PostgREST + GoTrue — the
 same open-source pieces Supabase Cloud runs) on the coach's Unraid box,
 behind an existing Traefik instance and Cloudflare Tunnel, rather than
 pay for AWS/DigitalOcean/Supabase Pro. See `self-host/README.md` for the
-full stack and setup steps — status as of this writing: stack is running
-and TLS is confirmed working; coach login not yet created.
+full stack and setup steps — status as of this writing: **fully working
+end-to-end**. Stack is running, TLS is valid, coach login is created,
+and `app.js`/`dashboard/app.js` are pointed at it — a real match has
+been recorded (squad management, live scoreboard, sync) and confirmed
+showing up correctly on the dashboard. Along the way this surfaced (and
+fixed) four real self-hosting gotchas now documented in
+`self-host/README.md`'s Prerequisites section: the `auth` schema not
+auto-creating itself, a DNS-01 propagation check needing external
+resolvers, GoTrue's runtime queries needing an explicit `search_path`,
+and CORS needing a Traefik middleware to replace the role Kong normally
+plays in Supabase's reference stack.
+
+Remaining before this fully replaces Supabase Cloud: exposing
+`matchday-api.shadowlan.org` externally via the existing Cloudflare
+Tunnel (Public Hostname → `192.168.8.2:443`, Traefik's HTTPS
+entrypoint), adding the Cloudflare WAF rate-limit rule on
+`/auth/v1/token` once it's public, and setting up a Postgres backup
+cron — all in `self-host/README.md` steps 8-11.
 
 The backend lives entirely on `matchday-api.shadowlan.org` (the coach's
 existing internal domain) — both for local testing and, later, once
@@ -83,11 +99,6 @@ in the repo's Pages settings are still outstanding, done outside this
 repo. The two domains don't interact — the frontend just calls whatever
 `CONFIG.SUPABASE_URL` points at, regardless of what domain it's itself
 served from.
-
-Once the coach login is created, `CONFIG.SUPABASE_URL` and
-`CONFIG.SUPABASE_ANON_KEY` in both `app.js` and `dashboard/app.js` need
-updating (currently still point at the paused Supabase project) — see
-`self-host/README.md` steps 4-6 for minting the new anon key.
 
 ## Data model (`schema.sql`)
 
