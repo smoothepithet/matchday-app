@@ -43,6 +43,11 @@ const CONFIG = {
   SUPABASE_ANON_KEY: localStorage.getItem("dev_supabase_anon_key") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6Im1hdGNoZGF5LXNlbGYtaG9zdCIsImlhdCI6MTc4OTExOTc2MSwiZXhwIjoyMTA0Njk1NzYxfQ.L9_Tlu6kLFrjv-EUFrGTl6i2yUNCWopLyX0gkSJS9S8",  // your anon/public key
 };
 
+// Single dedicated goalkeeper — the Save button logs straight to them
+// without asking who made the save. Update this if that ever changes
+// (e.g. a second keeper rotates in).
+const GOALKEEPER_NAME = "Reon";
+
 // ---------------------------------------------------------------
 // Dev-mode indicator — impossible to miss, so it's never ambiguous
 // which backend you're actually talking to. Uses only the existing
@@ -606,10 +611,11 @@ function initApp() {
   });
 
   document.getElementById("btn-save").addEventListener("click", () => {
-    openPicker("Who made the save?", (keeper) => {
-      match.events.push({ id: crypto.randomUUID(), type: "save", player: keeper, minute: currentMinute() });
-      renderLog();
-    });
+    // Single dedicated keeper (squad #1, Reon) — skip the picker prompt
+    // and log the save straight to them. Update GOALKEEPER_NAME near
+    // CONFIG if this ever changes.
+    match.events.push({ id: crypto.randomUUID(), type: "save", player: GOALKEEPER_NAME, minute: currentMinute() });
+    renderLog();
   });
 
   document.getElementById("btn-goal-them").addEventListener("click", () => {
