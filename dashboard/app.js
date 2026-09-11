@@ -286,10 +286,40 @@ function renderReports(rows) {
     const card = document.createElement("div");
     card.className = "report-card";
     card.innerHTML = `
-      <div class="report-card-meta">${m.match_date ?? ""} — ${m.opposition ?? "Match"} (${m.our_score ?? "?"}–${m.their_score ?? "?"})</div>
+      <div class="report-card-header">
+        <div class="report-card-meta">${m.match_date ?? ""} — ${m.opposition ?? "Match"} (${m.our_score ?? "?"}–${m.their_score ?? "?"})</div>
+        <button type="button" class="copy-btn">Copy</button>
+      </div>
       <p class="report-card-text"></p>
     `;
     card.querySelector(".report-card-text").textContent = r.report_text;
+
+    const copyBtn = card.querySelector(".copy-btn");
+    copyBtn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(r.report_text);
+      } catch {
+        // Clipboard API needs a secure context/permission — fall back to
+        // the old select-and-copy trick rather than leaving the button
+        // silently do nothing (e.g. non-HTTPS local testing).
+        const textarea = document.createElement("textarea");
+        textarea.value = r.report_text;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      const original = copyBtn.textContent;
+      copyBtn.textContent = "Copied!";
+      copyBtn.disabled = true;
+      setTimeout(() => {
+        copyBtn.textContent = original;
+        copyBtn.disabled = false;
+      }, 1500);
+    });
+
     list.appendChild(card);
   });
 }
