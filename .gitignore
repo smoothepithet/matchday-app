@@ -15,9 +15,10 @@ env/
 .env.*
 !.env.example
 
-# Self-hosted stack (self-host/README.md) — bind-mounted Postgres data,
-# never the actual database files
+# Self-hosted stack (self-host/README.md) — bind-mounted Postgres data
+# and local backup dumps, never actual database files
 self-host/data/
+self-host/backups/
 
 # OS cruft
 .DS_Store

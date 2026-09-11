@@ -88,8 +88,14 @@ requests per `10s`, per IP → `Block` for `10s`. Still a meaningful
 throttle for a single-shared-account hobby app, just not as strong as a
 paid plan would allow.
 
-Only Postgres backups (step 8) remain outstanding before this fully
-replaces Supabase Cloud.
+Postgres backups (step 8) are done too — a `pgbackups` service
+(`prodrigestivill/postgres-backup-local`) in `docker-compose.yml` runs
+`pg_dump` daily (plus once on startup) with rotated daily/weekly/
+monthly retention, written to `BACKUP_DIR` (should point at the main
+parity-protected array, not the appdata/cache pool the rest of the
+stack lives on). **This closes out the Supabase Cloud migration** — the
+self-hosted stack is fully working, exposed, rate-limited, and backed
+up.
 
 The backend lives entirely on `matchday-api.shadowlan.org` (the coach's
 existing internal domain) — both for local testing and, later, once

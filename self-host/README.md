@@ -207,16 +207,52 @@ browser fetches behave the same as they will once actually deployed.
 Sign in with the coach account, record a test match, end it, and confirm
 it shows up correctly via `dashboard/index.html`.
 
-## 8. Backups
+## 8. Backups (done)
 
-Nothing backs this up automatically anymore. A simple cron (Unraid User
-Scripts plugin) running something like:
+Nothing backs this up automatically by default once you're off Supabase
+Cloud, so `docker-compose.yml` includes a dedicated `pgbackups` service
+(`prodrigestivill/postgres-backup-local`, a purpose-built tool for
+exactly this rather than a hand-rolled script) — it runs `pg_dump`
+automatically on the `SCHEDULE` below and keeps rotated daily/weekly/
+monthly dumps with automatic pruning:
 
+- Runs daily (`SCHEDULE=@daily`), plus immediately on container start
+  (`BACKUP_ON_START=TRUE`) so you're not waiting until midnight for the
+  first one.
+- Keeps 30 daily + 12 weekly + 24 monthly dumps — generous on purpose:
+  the whole season's data is tiny (KB-scale), so there's no real cost
+  to erring toward "keep everything," and 24 months of monthly
+  snapshots comfortably outlives a single season.
+- Written to `BACKUP_DIR` in `.env` — **make sure this points at your
+  main parity-protected array, not the appdata/cache pool** the rest of
+  this stack lives on. Backing up to the same pool as the live database
+  protects against accidental `DELETE`s and corruption, but not against
+  that pool's disk failing — which would take out the backups right
+  along with the database.
+
+No extra setup needed — it starts automatically with `docker compose up
+-d` alongside everything else. Check it's actually producing files:
 ```bash
-docker compose exec -T postgres pg_dump -U postgres matchday | gzip > /mnt/user/backups/matchday/$(date +%F).sql.gz
+ls -la /mnt/user/backups/matchday-app/daily/
 ```
 
-on a schedule, pointed at wherever you keep backups, covers it.
+### Restoring from a backup
+
+**Test this now**, with the test match data already in there, rather
+than finding out it doesn't work the day you actually need it:
+
+```bash
+# find a backup
+ls /mnt/user/backups/matchday-app/daily/
+
+# restore it (this replaces current data — for a real restore, stop
+# postgrest/gotrue first so nothing writes mid-restore)
+gunzip -c /mnt/user/backups/matchday-app/daily/matchday-<db>-<timestamp>.sql.gz | \
+  docker compose exec -T postgres psql -U postgres -d matchday
+```
+
+(Exact filename pattern may differ slightly — check what's actually in
+the `daily/` folder after the first backup runs.)
 
 ## 9. Exposing it later (confirmed working — see gotcha above)
 
