@@ -64,6 +64,29 @@
     color: #777;
     margin: 0 0 14px;
   }
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .panel-header h2 { margin: 0 0 14px; }
+  .filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .filters select {
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #fff;
+    color: var(--void);
+    font-size: 13px;
+    cursor: pointer;
+  }
   table {
     width: 100%;
     border-collapse: collapse;
@@ -205,7 +228,22 @@
   </div>
 
   <div class="panel">
-    <h2>Results</h2>
+    <div class="panel-header">
+      <h2>Results</h2>
+      <div class="filters">
+        <select id="filter-venue">
+          <option value="">All Venues</option>
+          <option value="home">Home</option>
+          <option value="away">Away</option>
+        </select>
+        <select id="filter-result">
+          <option value="">All Results</option>
+          <option value="W">Win</option>
+          <option value="D">Draw</option>
+          <option value="L">Loss</option>
+        </select>
+      </div>
+    </div>
     <table id="results-table">
       <thead>
         <tr><th>Date</th><th>Opposition</th><th>Venue</th><th class="num">Score</th><th class="num">Result</th></tr>
@@ -213,10 +251,22 @@
       <tbody id="results-body"></tbody>
     </table>
     <div id="results-empty" class="empty-state hidden">No completed matches yet.</div>
+    <div id="results-filtered-empty" class="empty-state hidden">No results match the selected filters.</div>
   </div>
 
   <div class="panel">
-    <h2>Season Awards</h2>
+    <div class="panel-header">
+      <h2>Season Awards</h2>
+      <div class="filters">
+        <select id="filter-award-type">
+          <option value="">All Awards</option>
+          <option value="training_potw">Training POTW</option>
+          <option value="managers_potw">Manager's POTW</option>
+          <option value="parents_potw">Parents' POTW</option>
+          <option value="player_of_month">Player of the Month</option>
+        </select>
+      </div>
+    </div>
     <table id="awards-table">
       <thead>
         <tr><th>Date</th><th>Award</th><th>Player</th></tr>
@@ -224,6 +274,7 @@
       <tbody id="awards-body"></tbody>
     </table>
     <div id="awards-empty" class="empty-state hidden">No awards recorded yet.</div>
+    <div id="awards-filtered-empty" class="empty-state hidden">No awards match the selected filter.</div>
   </div>
 </main>
 <script src="app.js"></script>

@@ -156,6 +156,10 @@ document.getElementById("logout-btn").addEventListener("click", () => {
   window.location.reload();
 });
 
+document.getElementById("filter-venue").addEventListener("change", applyResultsFilters);
+document.getElementById("filter-result").addEventListener("change", applyResultsFilters);
+document.getElementById("filter-award-type").addEventListener("change", applyAwardsFilters);
+
 // ---------------------------------------------------------------
 // Dashboard data loading
 // ---------------------------------------------------------------
@@ -186,11 +190,11 @@ async function loadDashboard() {
       fetch(`${CONFIG.SUPABASE_URL}/rest/v1/season_awards`, { headers }),
     ]);
     const stats = await statsRes.json();
-    const results = await resultsRes.json();
-    const awards = await awardsRes.json();
+    allResults = await resultsRes.json();
+    allAwards = await awardsRes.json();
     renderStats(stats);
-    renderResults(results);
-    renderAwards(awards);
+    applyResultsFilters();
+    applyAwardsFilters();
   } catch (err) {
     console.error("Dashboard load failed:", err);
   }
@@ -203,15 +207,42 @@ const AWARD_LABELS = {
   player_of_month: "Player of the Month",
 };
 
-function renderAwards(rows) {
+// ---------------------------------------------------------------
+// Filters — client-side, over the full already-fetched data (a
+// season's worth of matches/awards is tiny, no point re-querying the
+// server for this). "No data at all" and "no data matches the
+// selected filter" are deliberately different empty states, so a
+// filtered-to-nothing view doesn't look like the season has no data.
+// ---------------------------------------------------------------
+let allResults = [];
+let allAwards = [];
+
+function applyResultsFilters() {
+  const venue = document.getElementById("filter-venue").value;
+  const result = document.getElementById("filter-result").value;
+  const filtered = allResults.filter(
+    (r) => (!venue || r.venue === venue) && (!result || r.result === result)
+  );
+  renderResults(filtered, allResults.length > 0);
+}
+
+function applyAwardsFilters() {
+  const type = document.getElementById("filter-award-type").value;
+  const filtered = allAwards.filter((a) => !type || a.award_type === type);
+  renderAwards(filtered, allAwards.length > 0);
+}
+
+function renderAwards(rows, hasAnyData) {
   const body = document.getElementById("awards-body");
   const empty = document.getElementById("awards-empty");
+  const filteredEmpty = document.getElementById("awards-filtered-empty");
   body.innerHTML = "";
+  empty.classList.add("hidden");
+  filteredEmpty.classList.add("hidden");
   if (!rows.length) {
-    empty.classList.remove("hidden");
+    (hasAnyData ? filteredEmpty : empty).classList.remove("hidden");
     return;
   }
-  empty.classList.add("hidden");
   rows.forEach((r) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -245,15 +276,17 @@ function renderStats(rows) {
   });
 }
 
-function renderResults(rows) {
+function renderResults(rows, hasAnyData) {
   const body = document.getElementById("results-body");
   const empty = document.getElementById("results-empty");
+  const filteredEmpty = document.getElementById("results-filtered-empty");
   body.innerHTML = "";
+  empty.classList.add("hidden");
+  filteredEmpty.classList.add("hidden");
   if (!rows.length) {
-    empty.classList.remove("hidden");
+    (hasAnyData ? filteredEmpty : empty).classList.remove("hidden");
     return;
   }
-  empty.classList.add("hidden");
   rows.forEach((r) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `

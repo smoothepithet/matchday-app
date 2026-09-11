@@ -187,7 +187,9 @@ Working:
   (`localStorage` key `award_sync_queue`), flushed on the same `online`
   event as match sync. Shows the 10 most recent awards on the same screen.
 - Dashboard: reads `player_season_stats`, `results_log`, and
-  `season_awards` views directly
+  `season_awards` views directly. Results filterable by venue/result,
+  awards filterable by award type — client-side over the already-fetched
+  data (`allResults`/`allAwards`), not separate queries per filter change.
 - Report generator: pulls a match + events from Supabase, prompts Claude to
   draft a caption-length report
 - Auth: both recorder and dashboard are gated behind a login screen backed
