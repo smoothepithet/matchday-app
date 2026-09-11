@@ -313,7 +313,7 @@ async function renderAwardsList() {
       row.className = "squad-item";
       row.innerHTML = `
         <span class="player-name">${AWARD_LABELS[a.award_type] || a.award_type} — ${a.player_name}</span>
-        <span class="muted" style="font-size:13px; white-space:nowrap;">${a.period_date}</span>
+        <span class="muted" style="font-size:13px; white-space:nowrap;">${formatDate(a.period_date)}</span>
       `;
       list.appendChild(row);
     });
@@ -340,6 +340,16 @@ function startClock() {
 
 function currentMinute() {
   return Math.max(1, Math.floor((Date.now() - match.startedAt - match.totalPausedMs) / 60000));
+}
+
+// Display-only — every date is stored/sent as ISO (YYYY-MM-DD), this
+// just reformats it for reading. Doesn't touch the native date picker
+// itself: that's rendered by the OS/browser according to the device's
+// own locale setting, which no amount of CSS/JS here can override.
+function formatDate(iso) {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-");
+  return `${d}-${m}-${y}`;
 }
 
 // ---------------------------------------------------------------

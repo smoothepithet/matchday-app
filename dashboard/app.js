@@ -57,6 +57,23 @@ const store = {
   },
 };
 
+// Display-only — every date is stored/fetched as ISO (YYYY-MM-DD), this
+// just reformats it for reading. Duplicated verbatim in recorder/app.js,
+// same convention as CONFIG/the auth helpers — keep both in sync.
+function formatDate(iso) {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-");
+  return `${d}-${m}-${y}`;
+}
+
+// Compact DD/MM for the goals chart's x-axis ticks, where a full year
+// would crowd out the bars — same day-before-month order as formatDate.
+function shortDate(iso) {
+  if (!iso) return "";
+  const [, m, d] = iso.split("-");
+  return `${d}/${m}`;
+}
+
 // ---------------------------------------------------------------
 // Auth (Supabase email/password, single shared coach account) —
 // duplicated verbatim from recorder/app.js, keep the two in sync
@@ -325,7 +342,7 @@ function renderGoalsChart(results) {
     const y = marginTop + innerHeight - barHeight;
     const rect = el("rect", { x, y, width: barWidth, height: barHeight, rx: 2, class: "chart-bar" });
     const title = document.createElementNS(svgNS, "title");
-    title.textContent = `${r.match_date} vs ${r.opposition}: ${r.our_score} scored`;
+    title.textContent = `${formatDate(r.match_date)} vs ${r.opposition}: ${r.our_score} scored`;
     rect.appendChild(title);
     svg.appendChild(rect);
 
@@ -336,7 +353,7 @@ function renderGoalsChart(results) {
         class: "chart-axis-text",
         "text-anchor": "middle",
       });
-      label.textContent = (r.match_date || "").slice(5).replace("-", "/");
+      label.textContent = shortDate(r.match_date);
       svg.appendChild(label);
     }
   });
@@ -393,7 +410,7 @@ function renderAwards(rows, hasAnyData) {
   rows.forEach((r) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${r.period_date}</td>
+      <td>${formatDate(r.period_date)}</td>
       <td><span class="award-pill">${AWARD_LABELS[r.award_type] || r.award_type}</span></td>
       <td><span class="number-badge">${r.squad_number ?? "-"}</span>${r.player_name}</td>
     `;
@@ -420,7 +437,7 @@ function renderReports(rows) {
     card.id = `report-${r.match_id}`;
     card.innerHTML = `
       <div class="report-card-header">
-        <div class="report-card-meta">${m.match_date ?? ""} — ${m.opposition ?? "Match"} (${m.our_score ?? "?"}–${m.their_score ?? "?"})</div>
+        <div class="report-card-meta">${formatDate(m.match_date)} — ${m.opposition ?? "Match"} (${m.our_score ?? "?"}–${m.their_score ?? "?"})</div>
         <button type="button" class="copy-btn">Copy</button>
       </div>
       <p class="report-card-text"></p>
@@ -497,7 +514,7 @@ function renderResults(rows, hasAnyData) {
       ? `<button type="button" class="score-link" data-match-id="${r.id}">${score}</button>`
       : score;
     tr.innerHTML = `
-      <td>${r.match_date}</td>
+      <td>${formatDate(r.match_date)}</td>
       <td>${r.opposition}</td>
       <td>${r.venue}</td>
       <td>${r.competition || "—"}</td>

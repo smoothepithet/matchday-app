@@ -619,6 +619,18 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   line-height: 46px;
 }
 
+/* -webkit-appearance:none alone isn't enough on Safari — the internal
+   ::-webkit-datetime-edit part still carries its own line-height and
+   padding, which is what actually made these fields render taller than
+   every other box even after the fix above. This targets that part
+   directly, on both date fields. */
+.setup input[type="date"]::-webkit-datetime-edit,
+.award-field[type="date"]::-webkit-datetime-edit {
+  line-height: 1;
+  padding: 0;
+  margin-bottom: -2px;
+}
+
 .hidden {
   display: none !important;
 }

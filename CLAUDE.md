@@ -341,6 +341,22 @@ Known gaps (in priority order for next work):
 - Team name lives as `CONFIG.TEAM_NAME` in `record/app.js` and
   `TEAM_NAME` in `generate_report.py` — update both if the team name
   ever changes.
+- Dates are stored/transmitted as ISO (`YYYY-MM-DD`) everywhere, but
+  displayed as `DD-MM-YYYY` — `formatDate()` (duplicated in both
+  `app.js` files, same convention as `CONFIG`/the auth helpers) does
+  that reformatting; `dashboard/app.js` also has `shortDate()` (`DD/MM`)
+  for the Goals-per-match chart's x-axis ticks, where a full year would
+  crowd out the bars. This only affects dates the app itself renders as
+  text — the native `<input type="date">` picker's own displayed format
+  is controlled entirely by the device/browser's OS locale setting and
+  can't be overridden from CSS or JS.
+- `input[type="date"]` fields (`.setup`/`.award-field` in
+  `record/styles.css`) need two separate fixes to render at the same
+  height as every other field, not just one: `-webkit-appearance: none`
+  strips the native chrome, but Safari's internal
+  `::-webkit-datetime-edit` part still carries its own line-height/
+  padding independent of that, and needs resetting directly too — the
+  first fix alone looked complete on some devices but not others.
 
 ## Testing
 
