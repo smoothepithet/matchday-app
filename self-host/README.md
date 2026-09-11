@@ -238,21 +238,30 @@ ls -la /mnt/user/backups/matchday-app/daily/
 
 ### Restoring from a backup
 
-**Test this now**, with the test match data already in there, rather
-than finding out it doesn't work the day you actually need it:
+**Tested and confirmed working** — restored `matchday-<date>.sql.gz`
+into a scratch database and verified the match/squad data came back
+intact. Files show up as `matchday-<date>.sql.gz`, with
+`matchday-latest.sql.gz` as a symlink to the most recent one.
 
+**To verify a backup without touching live data** (safe to run anytime,
+e.g. after a schema change, to confirm backups are still good):
 ```bash
-# find a backup
-ls /mnt/user/backups/matchday-app/daily/
-
-# restore it (this replaces current data — for a real restore, stop
-# postgrest/gotrue first so nothing writes mid-restore)
-gunzip -c /mnt/user/backups/matchday-app/daily/matchday-<db>-<timestamp>.sql.gz | \
-  docker compose exec -T postgres psql -U postgres -d matchday
+docker compose exec postgres psql -U postgres -c "CREATE DATABASE matchday_restore_test;"
+gunzip -c /mnt/user/backups/matchday-app/daily/matchday-latest.sql.gz | \
+  docker compose exec -T postgres psql -U postgres -d matchday_restore_test
+docker compose exec postgres psql -U postgres -d matchday_restore_test -c "SELECT * FROM matches;"
+docker compose exec postgres psql -U postgres -c "DROP DATABASE matchday_restore_test;"
 ```
 
-(Exact filename pattern may differ slightly — check what's actually in
-the `daily/` folder after the first backup runs.)
+**For an actual disaster recovery** (replacing live data for real):
+stop `postgrest`/`gotrue` first so nothing writes mid-restore, then
+restore into `matchday` directly instead of a scratch database:
+```bash
+docker compose stop postgrest gotrue
+gunzip -c /mnt/user/backups/matchday-app/daily/matchday-latest.sql.gz | \
+  docker compose exec -T postgres psql -U postgres -d matchday
+docker compose start postgrest gotrue
+```
 
 ## 9. Exposing it later (confirmed working — see gotcha above)
 

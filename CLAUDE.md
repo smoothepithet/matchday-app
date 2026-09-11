@@ -93,7 +93,11 @@ Postgres backups (step 8) are done too — a `pgbackups` service
 `pg_dump` daily (plus once on startup) with rotated daily/weekly/
 monthly retention, written to `BACKUP_DIR` (should point at the main
 parity-protected array, not the appdata/cache pool the rest of the
-stack lives on). **This closes out the Supabase Cloud migration** — the
+stack lives on). The restore path has been **actually tested**, not
+just configured: restored a real daily dump into a scratch database
+and confirmed the test match + full squad came back intact before
+dropping it — see `self-host/README.md` step 8 for the restore
+commands. **This closes out the Supabase Cloud migration** — the
 self-hosted stack is fully working, exposed, rate-limited, and backed
 up.
 
