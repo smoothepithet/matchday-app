@@ -75,6 +75,10 @@
       Manage Squad <span id="squad-count-badge">(0 players)</span> →
     </button>
 
+    <button type="button" class="squad-link-btn" id="manage-awards-btn">
+      Awards →
+    </button>
+
     <button class="start-btn" id="start-match-btn">Kick Off</button>
   </section>
 
@@ -93,6 +97,36 @@
 
     <div id="squad-list" class="squad-list"></div>
     <p class="squad-empty muted hidden" id="squad-empty">No players yet — add your squad above. This is saved on this device and reused every match.</p>
+  </section>
+
+  <!-- AWARDS SCREEN -->
+  <section id="awards-screen" class="squad-screen hidden">
+    <div class="squad-header">
+      <button class="back-btn" id="awards-back-btn">← Back</button>
+      <h1 class="screen-title">Awards</h1>
+    </div>
+
+    <label for="award-type">Award</label>
+    <select id="award-type">
+      <option value="training_potw">Training Player of the Week</option>
+      <option value="managers_potw">Manager's Player of the Week</option>
+      <option value="parents_potw">Parents' Player of the Week</option>
+      <option value="player_of_month">Player of the Month</option>
+    </select>
+
+    <label for="award-period-date" id="award-period-label">Week ending</label>
+    <input id="award-period-date" type="date" />
+    <input id="award-period-month" type="month" class="hidden" />
+
+    <label>Player</label>
+    <button type="button" class="squad-link-btn" id="award-player-btn">Select player →</button>
+
+    <button type="button" class="add-player-btn" id="save-award-btn" style="width:100%; margin-top:16px;">Save Award</button>
+    <p class="error-banner hidden" id="award-error"></p>
+
+    <label style="margin-top:24px;">Recent Awards</label>
+    <div id="awards-list" class="squad-list"></div>
+    <p class="squad-empty muted hidden" id="awards-empty">No awards recorded yet.</p>
   </section>
 
   <!-- MATCH SCREEN -->

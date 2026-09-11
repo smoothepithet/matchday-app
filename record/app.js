@@ -154,6 +154,7 @@ let squad = store.get("squad", []); // [{ id, name, number }]
 let match = null;       // current match object while live
 let clockInterval = null;
 let pendingAction = null; // resolves the currently-open player picker
+let selectedAwardPlayer = null; // player name chosen via the picker, for the awards form
 
 function saveSquad() {
   store.set("squad", squad);
@@ -240,6 +241,79 @@ async function syncSquadFromSupabase(session) {
     }
   } catch (err) {
     console.error("Squad sync from Supabase failed:", err);
+  }
+}
+
+// ---------------------------------------------------------------
+// Awards (Training/Manager's/Parents' Player of the Week, Player of
+// the Month) — none of these are tied to a specific match; the two
+// "Player of the Match" awards are actually decided weekly on the
+// strength of both weekend matches combined, same cadence as the
+// training award, so there's just a period_date (week-ending Sunday,
+// or first-of-month) rather than a match reference.
+// ---------------------------------------------------------------
+const AWARD_LABELS = {
+  training_potw: "Training POTW",
+  managers_potw: "Manager's POTW",
+  parents_potw: "Parents' POTW",
+  player_of_month: "Player of the Month",
+};
+
+function mostRecentSunday() {
+  const d = new Date();
+  d.setDate(d.getDate() - d.getDay()); // getDay(): 0 = Sunday
+  return d;
+}
+
+function updateAwardPeriodInputs() {
+  const isMonthly = document.getElementById("award-type").value === "player_of_month";
+  document.getElementById("award-period-date").classList.toggle("hidden", isMonthly);
+  document.getElementById("award-period-month").classList.toggle("hidden", !isMonthly);
+  document.getElementById("award-period-label").textContent = isMonthly ? "Month" : "Week ending";
+}
+
+function resetAwardForm() {
+  selectedAwardPlayer = null;
+  document.getElementById("award-player-btn").textContent = "Select player →";
+  document.getElementById("award-period-date").valueAsDate = mostRecentSunday();
+  document.getElementById("award-period-month").value = new Date().toISOString().slice(0, 7);
+}
+
+async function renderAwardsList() {
+  const list = document.getElementById("awards-list");
+  const empty = document.getElementById("awards-empty");
+  if (!list) return;
+  const session = await ensureFreshSession();
+  if (!session) return;
+  try {
+    const res = await fetch(
+      `${CONFIG.SUPABASE_URL}/rest/v1/season_awards?select=award_type,period_date,player_name&order=period_date.desc&limit=10`,
+      {
+        headers: {
+          apikey: CONFIG.SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      }
+    );
+    if (!res.ok) return;
+    const awards = await res.json();
+    list.innerHTML = "";
+    if (!awards.length) {
+      empty.classList.remove("hidden");
+      return;
+    }
+    empty.classList.add("hidden");
+    awards.forEach((a) => {
+      const row = document.createElement("div");
+      row.className = "squad-item";
+      row.innerHTML = `
+        <span class="player-name">${AWARD_LABELS[a.award_type] || a.award_type} — ${a.player_name}</span>
+        <span class="muted" style="font-size:13px; white-space:nowrap;">${a.period_date}</span>
+      `;
+      list.appendChild(row);
+    });
+  } catch (err) {
+    console.error("Failed to load recent awards:", err);
   }
 }
 
@@ -369,6 +443,60 @@ function initApp() {
   document.getElementById("squad-back-btn").addEventListener("click", () => {
     document.getElementById("squad-screen").classList.add("hidden");
     document.getElementById("setup").classList.remove("hidden");
+  });
+
+  document.getElementById("award-type").addEventListener("change", updateAwardPeriodInputs);
+
+  document.getElementById("award-player-btn").addEventListener("click", () => {
+    openPicker("Who won this award?", (name) => {
+      if (!name) return;
+      selectedAwardPlayer = name;
+      document.getElementById("award-player-btn").textContent = `${name} →`;
+    });
+  });
+
+  document.getElementById("manage-awards-btn").addEventListener("click", () => {
+    document.getElementById("setup").classList.add("hidden");
+    document.getElementById("awards-screen").classList.remove("hidden");
+    updateAwardPeriodInputs();
+    resetAwardForm();
+    renderAwardsList();
+  });
+
+  document.getElementById("awards-back-btn").addEventListener("click", () => {
+    document.getElementById("awards-screen").classList.add("hidden");
+    document.getElementById("setup").classList.remove("hidden");
+  });
+
+  document.getElementById("save-award-btn").addEventListener("click", async () => {
+    const errorEl = document.getElementById("award-error");
+    errorEl.classList.add("hidden");
+    const awardType = document.getElementById("award-type").value;
+    const isMonthly = awardType === "player_of_month";
+    const monthValue = document.getElementById("award-period-month").value;
+    const periodDate = isMonthly
+      ? (monthValue ? `${monthValue}-01` : "")
+      : document.getElementById("award-period-date").value;
+
+    if (!selectedAwardPlayer) {
+      errorEl.textContent = "Select a player first.";
+      errorEl.classList.remove("hidden");
+      return;
+    }
+    if (!periodDate) {
+      errorEl.textContent = isMonthly ? "Select a month." : "Select a date.";
+      errorEl.classList.remove("hidden");
+      return;
+    }
+
+    const btn = document.getElementById("save-award-btn");
+    btn.disabled = true;
+    btn.textContent = "Saving…";
+    await saveAward({ award_type: awardType, player_name: selectedAwardPlayer, period_date: periodDate });
+    btn.disabled = false;
+    btn.textContent = "Save Award";
+    resetAwardForm();
+    renderAwardsList();
   });
 
   renderSquadList();
@@ -635,12 +763,59 @@ function queueForSync(m) {
   store.set("sync_queue", queue);
 }
 
-// Retry queued matches whenever we come back online
+// ---------------------------------------------------------------
+// Sync an award (best-effort; falls back to local queue) — same
+// pattern as syncMatch/queueForSync above, separate queue since an
+// award is a different shape of record.
+// ---------------------------------------------------------------
+async function saveAward(award) {
+  const session = await ensureFreshSession();
+  if (!session) {
+    queueAwardForSync(award);
+    alert("Not signed in — award saved on this device, will sync once signed in.");
+    return;
+  }
+  try {
+    const headers = {
+      "Content-Type": "application/json",
+      apikey: CONFIG.SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${session.access_token}`,
+    };
+    const playerId = await resolvePlayerId(headers, award.player_name);
+    await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/awards`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        award_type: award.award_type,
+        player_id: playerId,
+        period_date: award.period_date,
+      }),
+    });
+  } catch (err) {
+    console.error("Award sync failed, queued for retry:", err);
+    queueAwardForSync(award);
+    alert("Offline — award saved on this device, will sync once back online.");
+  }
+}
+
+function queueAwardForSync(award) {
+  const queue = store.get("award_sync_queue", []);
+  queue.push(award);
+  store.set("award_sync_queue", queue);
+}
+
+// Retry queued matches and awards whenever we come back online
 window.addEventListener("online", async () => {
   const queue = store.get("sync_queue", []);
-  if (!queue.length) return;
-  store.set("sync_queue", []);
-  for (const m of queue) await syncMatch(m);
+  if (queue.length) {
+    store.set("sync_queue", []);
+    for (const m of queue) await syncMatch(m);
+  }
+  const awardQueue = store.get("award_sync_queue", []);
+  if (awardQueue.length) {
+    store.set("award_sync_queue", []);
+    for (const a of awardQueue) await saveAward(a);
+  }
 });
 
 // ---------------------------------------------------------------

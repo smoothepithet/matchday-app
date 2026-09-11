@@ -164,6 +164,7 @@ async function loadDashboard() {
     document.getElementById("config-notice").classList.remove("hidden");
     document.getElementById("stats-empty").classList.remove("hidden");
     document.getElementById("results-empty").classList.remove("hidden");
+    document.getElementById("awards-empty").classList.remove("hidden");
     return;
   }
 
@@ -179,17 +180,47 @@ async function loadDashboard() {
   };
 
   try {
-    const [statsRes, resultsRes] = await Promise.all([
+    const [statsRes, resultsRes, awardsRes] = await Promise.all([
       fetch(`${CONFIG.SUPABASE_URL}/rest/v1/player_season_stats`, { headers }),
       fetch(`${CONFIG.SUPABASE_URL}/rest/v1/results_log`, { headers }),
+      fetch(`${CONFIG.SUPABASE_URL}/rest/v1/season_awards`, { headers }),
     ]);
     const stats = await statsRes.json();
     const results = await resultsRes.json();
+    const awards = await awardsRes.json();
     renderStats(stats);
     renderResults(results);
+    renderAwards(awards);
   } catch (err) {
     console.error("Dashboard load failed:", err);
   }
+}
+
+const AWARD_LABELS = {
+  training_potw: "Training POTW",
+  managers_potw: "Manager's POTW",
+  parents_potw: "Parents' POTW",
+  player_of_month: "Player of the Month",
+};
+
+function renderAwards(rows) {
+  const body = document.getElementById("awards-body");
+  const empty = document.getElementById("awards-empty");
+  body.innerHTML = "";
+  if (!rows.length) {
+    empty.classList.remove("hidden");
+    return;
+  }
+  empty.classList.add("hidden");
+  rows.forEach((r) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${r.period_date}</td>
+      <td>${AWARD_LABELS[r.award_type] || r.award_type}</td>
+      <td><span class="number-badge">${r.squad_number ?? "-"}</span>${r.player_name}</td>
+    `;
+    body.appendChild(tr);
+  });
 }
 
 function renderStats(rows) {

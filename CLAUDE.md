@@ -151,11 +151,20 @@ served from.
   `our_score`, `their_score`, `status`
 - `events` — one row per goal / assist / save / own_goal, linked to a match
   and (eventually) a player
+- `awards` — `award_type` (`training_potw` / `managers_potw` /
+  `parents_potw` / `player_of_month`), `player_id`, `period_date`,
+  `notes`. **Not** tied to a match — the two "Player of the Match"
+  awards are actually decided weekly on the strength of both weekend
+  matches combined (the team plays two matches/week), same cadence as
+  the training award, so `period_date` just means "which week/month
+  this represents" (week-ending Sunday, or first-of-month for the
+  monthly award).
 - Views: `player_season_stats` (goals/assists/saves/appearances per player,
-  includes `squad_number`), `results_log` (W/D/L per completed match)
+  includes `squad_number`), `results_log` (W/D/L per completed match),
+  `season_awards` (award history joined with player name/squad_number)
 
 RLS now requires a signed-in Supabase Auth session (`to authenticated`
-policies) — the `anon` role has no grants at all on the 3 tables or the 2
+policies) — the `anon` role has no grants at all on the 4 tables or the 3
 views. Both apps gate their UI behind a login screen (single shared coach
 email/password account) and send the user's access token as the bearer on
 every data call; the anon key alone can no longer read or write anything.
@@ -168,7 +177,14 @@ Working:
   scoreboard, goal/assist/save capture via player picker, undo, offline
   queue (`localStorage` key `sync_queue`), best-effort sync to Supabase REST
   API on match end and on `online` event. Deployed to GitHub Pages.
-- Dashboard: reads `player_season_stats` and `results_log` views directly
+- Awards screen (reachable from setup, alongside Manage Squad): records
+  Training/Manager's/Parents' Player of the Week and Player of the
+  Month, reusing the same player-picker sheet as match events and
+  `resolvePlayerId()` for the player lookup. Own offline queue
+  (`localStorage` key `award_sync_queue`), flushed on the same `online`
+  event as match sync. Shows the 10 most recent awards on the same screen.
+- Dashboard: reads `player_season_stats`, `results_log`, and
+  `season_awards` views directly
 - Report generator: pulls a match + events from Supabase, prompts Claude to
   draft a caption-length report
 - Auth: both recorder and dashboard are gated behind a login screen backed
