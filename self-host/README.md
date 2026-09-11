@@ -92,6 +92,20 @@ token permissions across two separate zones.
     to its own internal default cert for any SNI that doesn't match a
     configured router). Do **not** "fix" this by just disabling TLS
     verification instead — that's a real security downgrade, not a fix.
+  - Once the frontend is live on its own public domain (`wyrleyrockets.uk`
+    via GitHub Pages), sign-in may fail with `Permission was denied for
+    this request to access the local address space` — this is Chrome's
+    **Private Network Access** feature, which blocks a public webpage
+    from calling a server that resolves to a private/LAN IP (which
+    `matchday-api.shadowlan.org` does, for anyone on the same network as
+    Unraid, via the internal DNS override) unless the server explicitly
+    opts in. It won't show up testing from `localhost` (exempt from this
+    restriction) or from outside the LAN (resolves to Cloudflare's
+    public IP there instead, not a private one) — only when a real
+    public page is loaded by a device on the same LAN as the backend.
+    Fixed by adding `Access-Control-Allow-Private-Network: true` via
+    Traefik's `headers` middleware (already in `docker-compose.yml`,
+    `customResponseHeaders` on both cors middlewares).
 
 ## 2. Configure
 

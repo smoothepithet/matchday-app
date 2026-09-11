@@ -39,6 +39,7 @@ services:
       - traefik.http.middlewares.matchday-rest-cors.headers.accessControlAllowHeaders=*
       - traefik.http.middlewares.matchday-rest-cors.headers.accessControlMaxAge=86400
       - traefik.http.middlewares.matchday-rest-cors.headers.addVaryHeader=true
+      - traefik.http.middlewares.matchday-rest-cors.headers.customResponseHeaders.Access-Control-Allow-Private-Network=true
       - traefik.http.routers.matchday-rest.middlewares=matchday-rest-cors,matchday-rest-strip
       - traefik.http.services.matchday-rest.loadbalancer.server.port=3000
 
@@ -81,6 +82,7 @@ services:
       - traefik.http.middlewares.matchday-auth-cors.headers.accessControlAllowHeaders=*
       - traefik.http.middlewares.matchday-auth-cors.headers.accessControlMaxAge=86400
       - traefik.http.middlewares.matchday-auth-cors.headers.addVaryHeader=true
+      - traefik.http.middlewares.matchday-auth-cors.headers.customResponseHeaders.Access-Control-Allow-Private-Network=true
       - traefik.http.routers.matchday-auth.middlewares=matchday-auth-cors,matchday-auth-strip
       - traefik.http.services.matchday-auth.loadbalancer.server.port=9999
 
