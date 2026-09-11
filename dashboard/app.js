@@ -394,7 +394,7 @@ function renderAwards(rows, hasAnyData) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${r.period_date}</td>
-      <td>${AWARD_LABELS[r.award_type] || r.award_type}</td>
+      <td><span class="award-pill">${AWARD_LABELS[r.award_type] || r.award_type}</span></td>
       <td><span class="number-badge">${r.squad_number ?? "-"}</span>${r.player_name}</td>
     `;
     body.appendChild(tr);

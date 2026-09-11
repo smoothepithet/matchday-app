@@ -15,16 +15,21 @@
     --steel-light: #3d3d3d;
     --red: #d71920;
     --red-dark: #a30f17;
+    /* Second accent, alongside red — reserved for the Awards theme
+       (trophy/gold) and the Draw badge, kept distinct from red so
+       red's "us"/primary meaning stays unambiguous. */
+    --gold: #e8b04b;
+    --gold-dark: #b8842e;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    background: #f2f2f2;
-    color: var(--void);
+    background: var(--void);
+    color: var(--white);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
   header {
-    background: repeating-linear-gradient(135deg, #0a0a0a 0px, #0a0a0a 18px, #000000 18px, #000000 36px);
+    background: repeating-linear-gradient(135deg, #0a0a0a 0px, #0a0a0a 18px, #1a0808 18px, #1a0808 36px);
     color: var(--white);
     padding: 28px 20px;
     border-bottom: 3px solid var(--white);
@@ -50,32 +55,30 @@
     padding: 24px 20px 60px;
   }
   .panel {
-    background: #fff;
-    border: 1px solid #e2e2e2;
+    background: var(--panel);
+    border: 1px solid var(--steel);
     border-radius: 14px;
     padding: 18px 20px;
     margin-bottom: 24px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   }
   .stat-tile {
-    background: #fff;
-    border: 1px solid #e2e2e2;
+    background: var(--panel);
+    border: 1px solid var(--steel);
     border-radius: 14px;
     padding: 18px 20px;
     margin-bottom: 24px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   }
   .stat-tile-label {
     font-size: 13px;
     text-transform: uppercase;
     letter-spacing: 0.12em;
-    color: #777;
+    color: var(--silver);
     margin-bottom: 6px;
   }
   .stat-tile-value {
     font-size: 36px;
     font-weight: 600;
-    color: var(--void);
+    color: var(--red);
     line-height: 1;
   }
   .stat-row {
@@ -102,15 +105,16 @@
   .record-count {
     font-size: 22px;
     font-weight: 600;
-    color: var(--void);
+    color: var(--white);
   }
   .panel h2 {
     font-size: 13px;
     text-transform: uppercase;
     letter-spacing: 0.12em;
-    color: #777;
+    color: var(--silver);
     margin: 0 0 14px;
   }
+  .panel h2.gold-heading { color: var(--gold); }
   .panel-header {
     display: flex;
     align-items: center;
@@ -127,12 +131,16 @@
   }
   .filters select {
     padding: 6px 10px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--steel-light);
     border-radius: 8px;
-    background: #fff;
-    color: var(--void);
+    background: var(--steel);
+    color: var(--white);
     font-size: 13px;
     cursor: pointer;
+  }
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
   table {
     width: 100%;
@@ -142,10 +150,11 @@
   th, td {
     text-align: left;
     padding: 9px 6px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--steel);
+    white-space: nowrap;
   }
   th {
-    color: #888;
+    color: var(--silver);
     font-weight: 600;
     font-size: 12px;
     text-transform: uppercase;
@@ -158,8 +167,8 @@
     min-width: 22px;
     height: 22px;
     border-radius: 6px;
-    background: var(--void);
-    color: var(--white);
+    background: var(--white);
+    color: var(--void);
     font-size: 12px;
     font-weight: 800;
     margin-right: 8px;
@@ -173,13 +182,22 @@
     border-radius: 6px;
     font-weight: 700;
     font-size: 12px;
-    color: #fff;
+    color: var(--white);
   }
-  .result-W { background: #1a1a1a; }
-  .result-D { background: #999; }
-  .result-L { background: #ccc; color: #333; }
+  .result-W { background: var(--red); }
+  .result-D { background: var(--gold); color: var(--void); }
+  .result-L { background: var(--steel-light); }
+  .award-pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: rgba(232, 176, 75, 0.15);
+    color: var(--gold);
+    font-size: 12px;
+    font-weight: 700;
+  }
   .empty-state {
-    color: #999;
+    color: var(--silver);
     font-size: 14px;
     padding: 12px 0;
   }
@@ -190,25 +208,25 @@
     overflow: visible;
   }
   .chart-gridline {
-    stroke: #eee;
+    stroke: var(--steel);
     stroke-width: 1;
   }
   .chart-axis-text {
     font-size: 10px;
-    fill: #999;
+    fill: var(--silver);
     font-family: inherit;
   }
   .chart-bar {
-    fill: var(--void);
+    fill: var(--red);
   }
   .chart-bar:hover {
-    fill: #444;
+    fill: var(--gold);
   }
   .tabs {
     display: flex;
     gap: 4px;
     margin-bottom: 20px;
-    border-bottom: 1px solid #e2e2e2;
+    border-bottom: 1px solid var(--steel);
   }
   .tab-btn {
     background: none;
@@ -217,13 +235,13 @@
     margin-bottom: -1px;
     font-size: 14px;
     font-weight: 600;
-    color: #888;
+    color: var(--silver);
     cursor: pointer;
     border-bottom: 2px solid transparent;
   }
   .tab-btn.active {
-    color: var(--void);
-    border-bottom-color: var(--void);
+    color: var(--white);
+    border-bottom-color: var(--red);
   }
   .tab-panel.hidden { display: none; }
   .score-link {
@@ -232,21 +250,24 @@
     padding: 0;
     font: inherit;
     font-weight: inherit;
-    color: var(--void);
+    color: var(--red);
     text-decoration: underline;
     text-decoration-style: dotted;
     text-underline-offset: 3px;
     cursor: pointer;
   }
+  .score-link:hover { color: var(--gold); }
   .report-card {
-    border: 1px solid #eee;
+    background: var(--steel);
+    border: 1px solid var(--steel-light);
     border-radius: 10px;
     padding: 14px 16px;
     margin-bottom: 12px;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
   }
   .report-card.highlight {
-    background-color: #ececec;
+    background-color: var(--steel-light);
+    border-color: var(--red);
   }
   .report-card:last-child { margin-bottom: 0; }
   .report-card-header {
@@ -261,39 +282,42 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: #888;
+    color: var(--silver);
   }
   .copy-btn {
     flex-shrink: 0;
     padding: 5px 12px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--steel-light);
     border-radius: 8px;
-    background: #fff;
-    color: var(--void);
+    background: var(--panel);
+    color: var(--white);
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
   }
-  .copy-btn:hover { background: #f5f5f5; }
-  .copy-btn:disabled { color: #888; cursor: default; }
+  .copy-btn:hover { background: var(--steel-light); }
+  .copy-btn:disabled { color: var(--silver); cursor: default; }
   .report-card-text {
     margin: 0;
     font-size: 14px;
     line-height: 1.5;
     white-space: pre-wrap;
+    color: var(--white);
   }
   .config-notice {
-    background: #fff;
-    border: 1px dashed #999;
+    background: var(--panel);
+    border: 1px dashed var(--steel-light);
     border-radius: 10px;
     padding: 14px 16px;
     font-size: 14px;
     margin-bottom: 24px;
+    color: var(--silver);
   }
   code {
-    background: rgba(0,0,0,0.06);
+    background: rgba(255,255,255,0.08);
     padding: 2px 5px;
     border-radius: 4px;
+    color: var(--white);
   }
   .hidden { display: none !important; }
   .login-card {
@@ -304,11 +328,14 @@
     width: 100%;
     padding: 10px 12px;
     margin-bottom: 12px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--steel-light);
     border-radius: 8px;
     font-size: 15px;
     box-sizing: border-box;
+    background: var(--steel);
+    color: var(--white);
   }
+  .login-card input::placeholder { color: var(--silver); }
   .login-card button {
     width: 100%;
     padding: 12px;
@@ -320,6 +347,7 @@
     font-size: 15px;
     cursor: pointer;
   }
+  .login-card button:hover { background: var(--red-dark); }
   .login-card #login-error {
     background: var(--void);
     border: 1px solid var(--red);
@@ -391,12 +419,14 @@
 
     <div class="panel">
       <h2>Player Stats</h2>
-      <table id="stats-table">
-        <thead>
-          <tr><th>Player</th><th class="num">Apps</th><th class="num">Goals</th><th class="num">Assists</th><th class="num">Saves</th></tr>
-        </thead>
-        <tbody id="stats-body"></tbody>
-      </table>
+      <div class="table-scroll">
+        <table id="stats-table">
+          <thead>
+            <tr><th>Player</th><th class="num">Apps</th><th class="num">Goals</th><th class="num">Assists</th><th class="num">Saves</th></tr>
+          </thead>
+          <tbody id="stats-body"></tbody>
+        </table>
+      </div>
       <div id="stats-empty" class="empty-state hidden">No matches recorded yet.</div>
     </div>
 
@@ -424,19 +454,21 @@
           </select>
         </div>
       </div>
-      <table id="results-table">
-        <thead>
-          <tr><th>Date</th><th>Opposition</th><th>Venue</th><th>Competition</th><th class="num">Score</th><th class="num">Result</th></tr>
-        </thead>
-        <tbody id="results-body"></tbody>
-      </table>
+      <div class="table-scroll">
+        <table id="results-table">
+          <thead>
+            <tr><th>Date</th><th>Opposition</th><th>Venue</th><th>Competition</th><th class="num">Score</th><th class="num">Result</th></tr>
+          </thead>
+          <tbody id="results-body"></tbody>
+        </table>
+      </div>
       <div id="results-empty" class="empty-state hidden">No completed matches yet.</div>
       <div id="results-filtered-empty" class="empty-state hidden">No results match the selected filters.</div>
     </div>
 
     <div class="panel">
       <div class="panel-header">
-        <h2>Season Awards</h2>
+        <h2 class="gold-heading">🏆 Season Awards</h2>
         <div class="filters">
           <select id="filter-award-type">
             <option value="">All Awards</option>
@@ -447,12 +479,14 @@
           </select>
         </div>
       </div>
-      <table id="awards-table">
-        <thead>
-          <tr><th>Date</th><th>Award</th><th>Player</th></tr>
-        </thead>
-        <tbody id="awards-body"></tbody>
-      </table>
+      <div class="table-scroll">
+        <table id="awards-table">
+          <thead>
+            <tr><th>Date</th><th>Award</th><th>Player</th></tr>
+          </thead>
+          <tbody id="awards-body"></tbody>
+        </table>
+      </div>
       <div id="awards-empty" class="empty-state hidden">No awards recorded yet.</div>
       <div id="awards-filtered-empty" class="empty-state hidden">No awards match the selected filter.</div>
     </div>

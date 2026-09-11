@@ -57,11 +57,11 @@ illustrations" rule was never meant to cover it.
 
 Tokens (defined at the top of `record/styles.css`, duplicated inline in
 `dashboard/index.html` and `preview.html` — keep all three in sync if you
-change them). `--red`/`--red-dark` apply narrowly per context: `record/`
-uses it for "our team"/primary actions throughout; `dashboard/` (a
-read-only stats page with no us-vs-them context) only uses it for the
-Sign In button and login errors — deliberately not on the Win/Draw/Loss
-result badges, where red could misread as "bad" rather than "us":
+change them). Both `record/` and `dashboard/` are dark (`--void` body);
+`dashboard/` was originally a light read-only page with red scoped down
+to just Sign In/login errors, but was redone to match the recorder's
+dark theme and given a real accent role for red throughout, plus a
+second accent (`--gold`) reserved for the Awards theme — see below:
 
 | Token | Value | Use |
 |---|---|---|
@@ -69,8 +69,14 @@ result badges, where red could misread as "bad" rather than "us":
 | `--panel` | `#161616` | card/panel surfaces |
 | `--white` | `#ffffff` | primary text, secondary/neutral buttons |
 | `--silver` | `#b5b5b5` | secondary text |
-| `--steel` / `--steel-light` | `#2a2a2a` / `#3d3d3d` | borders, dividers |
-| `--red` / `--red-dark` | `#d71920` / `#a30f17` | accent — "our team"/primary actions (scope varies by page, see above) |
+| `--steel` / `--steel-light` | `#2a2a2a` / `#3d3d3d` | borders, dividers, `dashboard/` nested card surfaces (report cards) |
+| `--red` / `--red-dark` | `#d71920` / `#a30f17` | accent #1 — "our team"/primary actions: `record/`'s Goal (Us) button, score digit, scoreboard frame, Sign In/Kick Off/Add Player CTAs; `dashboard/`'s Clean sheets value, Goals-per-match chart bars, Win badge, active tab underline, Sign In button |
+| `--gold` / `--gold-dark` | `#e8b04b` / `#b8842e` | accent #2, `dashboard/`-only — Season Awards heading/pills, Draw badge; kept distinct from red so red's "us" meaning stays unambiguous elsewhere on the same page |
+
+Result badges on `dashboard/` are colour-coded now (W=red, D=gold,
+L=steel-light) rather than the original all-grey scheme, but every badge
+still carries its own W/D/L letter — color reinforces the label, never
+replaces it as the only identity channel.
 
 Type: system font stack throughout (works offline, no CDN dependency).
 Scoreboard digits use `"Courier New"` monospace for a tabular LED-display feel.
