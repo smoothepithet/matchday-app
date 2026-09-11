@@ -66,6 +66,17 @@ token permissions across two separate zones.
     appended (already in `docker-compose.yml`) — a plain `postgres://...`
     URL with no `search_path` set looks in `public` by default and
     silently can't find anything in `auth`.
+  - Browser calls fail with a CORS preflight error (`No 'Access-Control-
+    Allow-Origin' header is present`), even though `curl` reaches
+    everything fine — `curl` doesn't send preflight OPTIONS requests, so
+    it never exercises this path. Supabase's real Docker stack gets CORS
+    headers from **Kong**, the API gateway normally sitting in front of
+    GoTrue/PostgREST; skipping Kong for a leaner Traefik-only setup means
+    nothing adds those headers by default. Fixed by having Traefik's own
+    `headers` middleware do Kong's job here (already in
+    `docker-compose.yml`, `matchday-rest-cors`/`matchday-auth-cors`) —
+    it answers preflight OPTIONS requests directly and adds the
+    necessary `Access-Control-*` headers to real responses too.
 
 ## 2. Configure
 
