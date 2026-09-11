@@ -176,7 +176,15 @@ served from.
   `generate_report.py` now map every `event_type` through an
   `EVENT_TYPE_LABELS` dict to plain English before it reaches the
   prompt, so this class of bug (raw internal names leaking into
-  LLM-facing text) can't recur silently. Goal events also carry `goal_type`
+  LLM-facing text) can't recur silently. The same fix covers a second,
+  related case: a `goal` event with no player attached (coach skipped
+  the scorer picker) used to render as a bare, context-free line in the
+  event log and the model would fabricate an explanation for it — one
+  report described two unattributed goals as "the opposition gifted us
+  two own-goals," which isn't in the data at all. Both prompt builders
+  now render this explicitly as "(scorer not recorded)" and the prompt's
+  closing instructions explicitly forbid guessing a mechanism (own goal,
+  gift, etc.) for it. Goal events also carry `goal_type`
   (`open_play` / `free_kick` / `penalty`, null for non-goal events) —
   added via `alter table events add column if not exists ...` rather than
   folded into the original `create table`, so re-running `schema.sql`

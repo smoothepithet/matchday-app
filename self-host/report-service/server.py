@@ -88,12 +88,24 @@ EVENT_TYPE_LABELS = {
 
 def build_prompt(match: dict) -> str:
     events = match.get("events") or []
-    events_text = "\n".join(
-        f"- Minute {e.get('minute', '?')}: {EVENT_TYPE_LABELS.get(e.get('event_type'), e.get('event_type'))}"
-        + (f" ({e['player_name']})" if e.get("player_name") else "")
-        + (f" — {GOAL_TYPE_LABELS[e['goal_type']]}" if e.get("goal_type") and e["goal_type"] != "open_play" else "")
-        for e in events
-    )
+    lines = []
+    for e in events:
+        label = EVENT_TYPE_LABELS.get(e.get("event_type"), e.get("event_type"))
+        line = f"- Minute {e.get('minute', '?')}: {label}"
+        if e.get("player_name"):
+            line += f" ({e['player_name']})"
+        elif e.get("event_type") == "goal":
+            # A goal with no player attached means the coach skipped the
+            # scorer picker (unknown/missed in the moment) - explicit here
+            # so the model doesn't invent an explanation for the gap, the
+            # same failure mode that turned an unattributed goal into a
+            # fabricated "own goal gifted to us" in a past report.
+            line += " (scorer not recorded)"
+        if e.get("goal_type") and e["goal_type"] != "open_play":
+            line += f" — {GOAL_TYPE_LABELS[e['goal_type']]}"
+        lines.append(line)
+    events_text = "\n".join(lines)
+
     return f"""You are writing a short, upbeat match report for {TEAM_NAME}, a kids'
 grassroots football team, for their social media (Instagram/Facebook caption
 length — under 120 words).
@@ -111,7 +123,10 @@ Event log (chronological):
 Write in a warm, encouraging tone appropriate for kids' grassroots football —
 celebrate effort and teamwork, not just the scoreline. Mention standout
 moments from the event log where relevant, by name. End with 2-3 relevant
-hashtags. Do not invent names or stats that aren't in the data provided."""
+hashtags. Do not invent names, stats, or explanations that aren't in the
+data provided — if a goal is marked "scorer not recorded", just count it
+towards the team's total without guessing who scored it or how (never
+describe it as an own goal, a gift, or anything else not stated above)."""
 
 
 def call_ollama(prompt: str) -> str:

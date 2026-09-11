@@ -65,11 +65,18 @@ EVENT_TYPE_LABELS = {
 
 
 def build_prompt(match: dict) -> str:
-    events_text = "\n".join(
-        f"- Minute {e.get('minute', '?')}: {EVENT_TYPE_LABELS.get(e['event_type'], e['event_type'])}"
-        + (f" (player_id: {e['player_id']})" if e.get("player_id") else "")
-        for e in match["events"]
-    )
+    lines = []
+    for e in match["events"]:
+        label = EVENT_TYPE_LABELS.get(e["event_type"], e["event_type"])
+        line = f"- Minute {e.get('minute', '?')}: {label}"
+        if e.get("player_id"):
+            line += f" (player_id: {e['player_id']})"
+        elif e["event_type"] == "goal":
+            # See EVENT_TYPE_LABELS comment above - don't leave the model
+            # to guess why a scorer is missing.
+            line += " (scorer not recorded)"
+        lines.append(line)
+    events_text = "\n".join(lines)
 
     return f"""You are writing a short, upbeat match report for {TEAM_NAME}, a kids'
 grassroots football team, for their social media (Instagram/Facebook caption
@@ -88,7 +95,10 @@ Event log (chronological):
 Write in a warm, encouraging tone appropriate for kids' grassroots football —
 celebrate effort and teamwork, not just the scoreline. Mention standout
 moments from the event log where relevant. End with 2-3 relevant hashtags.
-Do not invent names or stats that aren't in the data provided."""
+Do not invent names, stats, or explanations that aren't in the data
+provided — if a goal is marked "scorer not recorded", just count it
+towards the team's total without guessing who scored it or how (never
+describe it as an own goal, a gift, or anything else not stated above)."""
 
 
 def generate_report(match_id: str) -> str:
