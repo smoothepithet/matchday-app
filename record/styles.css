@@ -15,6 +15,13 @@
   --silver: #b5b5b5;
   --steel: #2a2a2a;
   --steel-light: #3d3d3d;
+
+  /* Radius scale — was scattered literal values (6/8/10/12/14/18px)
+     with no clear system; consolidated to four sizes used consistently. */
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
 }
 
 * {
@@ -45,6 +52,44 @@ body {
 
 .muted {
   color: var(--silver);
+}
+
+.screen-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.screen-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--silver);
+}
+
+.squad-header .screen-title {
+  margin: 0;
+}
+
+/* --- Interaction states, applied consistently across every button/
+   input/select rather than only the match-screen action buttons —
+   previously most controls gave zero visual feedback on tap. --- */
+button, input, select {
+  transition: transform 0.08s ease, filter 0.15s ease, border-color 0.15s ease;
+}
+
+button:active {
+  transform: scale(0.97);
+  filter: brightness(0.85);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+input:focus-visible, select:focus-visible, button:focus-visible {
+  outline: 2px solid var(--white);
+  outline-offset: 2px;
 }
 
 /* --- Brand strip: diagonal vapour-trail texture --- */
@@ -82,6 +127,12 @@ body {
   font-size: 11px;
   text-decoration: underline;
   cursor: pointer;
+}
+
+.match-screen {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 /* --- Scoreboard signature element --- */
@@ -154,19 +205,13 @@ body {
 
 .action-btn {
   border: none;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   padding: 26px 12px;
   font-size: 18px;
   font-weight: 800;
   letter-spacing: 0.02em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: transform 0.08s ease, filter 0.15s ease;
-}
-
-.action-btn:active {
-  transform: scale(0.96);
-  filter: brightness(0.85);
 }
 
 .action-btn.goal-us {
@@ -216,7 +261,7 @@ body {
   gap: 10px;
   background: var(--panel);
   border: 1px solid var(--steel);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 10px 12px;
   margin-bottom: 8px;
   font-size: 15px;
@@ -266,7 +311,7 @@ body {
   width: 100%;
   max-width: 480px;
   margin: 0 auto;
-  border-radius: 18px 18px 0 0;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
   max-height: 75vh;
   overflow-y: auto;
@@ -302,7 +347,7 @@ body {
   justify-content: center;
   min-width: 26px;
   height: 26px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--void);
   color: var(--white);
   font-size: 13px;
@@ -317,7 +362,7 @@ body {
   width: 100%;
   margin-top: 10px;
   padding: 14px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   border: none;
   background: var(--void);
   color: var(--white);
@@ -343,7 +388,7 @@ body {
   width: 100%;
   height: 46px;
   padding: 0 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--steel-light);
   background: var(--panel);
   color: var(--white);
@@ -367,7 +412,7 @@ body {
   margin-top: 26px;
   width: 100%;
   padding: 16px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   border: none;
   background: var(--white);
   color: var(--void);
@@ -380,7 +425,7 @@ body {
 .squad-link-btn {
   width: 100%;
   padding: 14px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   border: 1px dashed var(--silver);
   background: transparent;
   color: var(--white);
@@ -388,6 +433,26 @@ body {
   font-weight: 700;
   text-align: left;
   cursor: pointer;
+}
+
+.error-banner {
+  background: var(--panel);
+  border: 1px solid var(--white);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  margin-top: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--white);
+  line-height: 1.4;
+}
+
+.log-empty {
+  color: var(--silver);
+  font-size: 14px;
+  text-align: center;
+  padding: 24px 8px;
+  line-height: 1.5;
 }
 
 /* --- Squad management screen --- */
@@ -423,7 +488,7 @@ body {
 
 .add-player-row input {
   padding: 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--steel-light);
   background: var(--panel);
   color: var(--white);
@@ -441,7 +506,7 @@ body {
 
 .add-player-btn {
   padding: 12px 16px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   border: none;
   background: var(--white);
   color: var(--void);
@@ -460,7 +525,7 @@ body {
   gap: 12px;
   background: var(--panel);
   border: 1px solid var(--steel);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 12px 14px;
   margin-bottom: 8px;
 }
@@ -471,7 +536,7 @@ body {
   justify-content: center;
   min-width: 30px;
   height: 30px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--white);
   color: var(--void);
   font-weight: 800;

@@ -6,6 +6,13 @@
 <title>Wyrley Rockets — Matchday</title>
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#000000" />
+<!-- iOS Safari's "Add to Home Screen" has historically relied on these
+     Apple-specific tags for standalone (no browser chrome) display and
+     the home-screen title, rather than reading manifest.json the way
+     Android/Chrome does — both are set so it works reliably either way. -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Matchday" />
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -19,8 +26,8 @@
 
   <!-- LOGIN SCREEN -->
   <section id="login-screen" class="setup">
-    <h1 style="font-size:22px; margin:0 0 4px;">Coach Sign In</h1>
-    <p class="muted" style="margin:0; font-size:14px;">Sign in once per device — stays signed in for offline pitch-side use.</p>
+    <h1 class="screen-title">Coach Sign In</h1>
+    <p class="screen-subtitle">Sign in once per device — stays signed in for offline pitch-side use.</p>
 
     <label for="login-email">Email</label>
     <input id="login-email" type="email" autocomplete="username" />
@@ -28,15 +35,15 @@
     <label for="login-password">Password</label>
     <input id="login-password" type="password" autocomplete="current-password" />
 
-    <p class="muted hidden" id="login-error"></p>
+    <p class="error-banner hidden" id="login-error"></p>
 
     <button class="start-btn" id="login-btn">Sign In</button>
   </section>
 
   <!-- SETUP SCREEN -->
   <section id="setup" class="setup hidden">
-    <h1 style="font-size:22px; margin:0 0 4px;">New Match</h1>
-    <p class="muted" style="margin:0; font-size:14px;">Set this up pitch-side before kick-off.</p>
+    <h1 class="screen-title">New Match</h1>
+    <p class="screen-subtitle">Set this up pitch-side before kick-off.</p>
 
     <label for="opposition">Opposition</label>
     <input id="opposition" type="text" placeholder="e.g. Riverside Rovers U10" />
@@ -71,7 +78,7 @@
   <section id="squad-screen" class="squad-screen hidden">
     <div class="squad-header">
       <button class="back-btn" id="squad-back-btn">← Back</button>
-      <h1 style="font-size:20px; margin:0;">Player Profiles</h1>
+      <h1 class="screen-title">Player Profiles</h1>
     </div>
 
     <div class="add-player-row">
@@ -85,7 +92,7 @@
   </section>
 
   <!-- MATCH SCREEN -->
-  <section id="match-screen" class="hidden" style="display:flex; flex-direction:column; flex:1;">
+  <section id="match-screen" class="match-screen hidden">
     <div class="scoreboard">
       <div class="fixture" id="fixture-label">Wyrley Rockets vs Them</div>
       <div class="score-row">

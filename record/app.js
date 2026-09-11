@@ -271,6 +271,10 @@ function renderScore() {
 function renderLog() {
   const log = document.getElementById("event-log");
   log.innerHTML = "";
+  if (!match.events.length) {
+    log.innerHTML = `<p class="log-empty">No events yet — tap a button above to record the first one.</p>`;
+    return;
+  }
   [...match.events].reverse().forEach((e) => {
     const row = document.createElement("div");
     row.className = "log-entry";
@@ -481,8 +485,11 @@ function showApp() {
 
 document.getElementById("login-btn").addEventListener("click", async () => {
   const errorEl = document.getElementById("login-error");
+  const btn = document.getElementById("login-btn");
   const email = document.getElementById("login-email").value.trim();
   const password = document.getElementById("login-password").value;
+  btn.disabled = true;
+  btn.textContent = "Signing In…";
   try {
     const session = await signIn(email, password);
     errorEl.classList.add("hidden");
@@ -492,6 +499,9 @@ document.getElementById("login-btn").addEventListener("click", async () => {
   } catch (err) {
     errorEl.textContent = err.message;
     errorEl.classList.remove("hidden");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Sign In";
   }
 });
 
