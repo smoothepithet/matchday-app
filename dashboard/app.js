@@ -161,6 +161,36 @@ document.getElementById("filter-result").addEventListener("change", applyResults
 document.getElementById("filter-award-type").addEventListener("change", applyAwardsFilters);
 
 // ---------------------------------------------------------------
+// Tabs — Overview (stats/results/awards) vs. Match Reports, its own
+// tab since a season's worth of full report text is long to scroll
+// past just to check a result.
+// ---------------------------------------------------------------
+document.querySelectorAll(".tab-btn").forEach((btn) => {
+  btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+});
+
+function switchTab(name) {
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.tab === name);
+  });
+  document.querySelectorAll(".tab-panel").forEach((panel) => {
+    panel.classList.toggle("hidden", panel.id !== `tab-${name}`);
+  });
+}
+
+// Jump from a Results row's score straight to that match's report —
+// switches tab, scrolls it into view, and briefly highlights it so
+// it's obvious which card the click landed on.
+function showReport(matchId) {
+  switchTab("reports");
+  const card = document.getElementById(`report-${matchId}`);
+  if (!card) return;
+  card.scrollIntoView({ behavior: "smooth", block: "center" });
+  card.classList.add("highlight");
+  setTimeout(() => card.classList.remove("highlight"), 1500);
+}
+
+// ---------------------------------------------------------------
 // Dashboard data loading
 // ---------------------------------------------------------------
 async function loadDashboard() {
@@ -190,7 +220,7 @@ async function loadDashboard() {
       fetch(`${CONFIG.SUPABASE_URL}/rest/v1/results_log`, { headers }),
       fetch(`${CONFIG.SUPABASE_URL}/rest/v1/season_awards`, { headers }),
       fetch(
-        `${CONFIG.SUPABASE_URL}/rest/v1/reports?select=id,report_text,created_at,matches(match_date,opposition,our_score,their_score)&order=created_at.desc`,
+        `${CONFIG.SUPABASE_URL}/rest/v1/reports?select=id,match_id,report_text,created_at,matches(match_date,opposition,our_score,their_score)&order=created_at.desc`,
         { headers }
       ),
     ]);
@@ -198,6 +228,7 @@ async function loadDashboard() {
     allResults = await resultsRes.json();
     allAwards = await awardsRes.json();
     const reports = await reportsRes.json();
+    reportMatchIds = new Set((Array.isArray(reports) ? reports : []).map((r) => r.match_id));
     renderStats(stats);
     renderCleanSheets(allResults);
     applyResultsFilters();
@@ -231,6 +262,7 @@ const AWARD_LABELS = {
 // ---------------------------------------------------------------
 let allResults = [];
 let allAwards = [];
+let reportMatchIds = new Set();
 
 function applyResultsFilters() {
   const venue = document.getElementById("filter-venue").value;
@@ -285,6 +317,7 @@ function renderReports(rows) {
     const m = r.matches || {};
     const card = document.createElement("div");
     card.className = "report-card";
+    card.id = `report-${r.match_id}`;
     card.innerHTML = `
       <div class="report-card-header">
         <div class="report-card-meta">${m.match_date ?? ""} — ${m.opposition ?? "Match"} (${m.our_score ?? "?"}–${m.their_score ?? "?"})</div>
@@ -359,14 +392,21 @@ function renderResults(rows, hasAnyData) {
   }
   rows.forEach((r) => {
     const tr = document.createElement("tr");
+    const score = `${r.our_score}–${r.their_score}`;
+    const scoreCell = reportMatchIds.has(r.id)
+      ? `<button type="button" class="score-link" data-match-id="${r.id}">${score}</button>`
+      : score;
     tr.innerHTML = `
       <td>${r.match_date}</td>
       <td>${r.opposition}</td>
       <td>${r.venue}</td>
-      <td class="num">${r.our_score}–${r.their_score}</td>
+      <td class="num">${scoreCell}</td>
       <td class="num"><span class="result-badge result-${r.result}">${r.result}</span></td>
     `;
     body.appendChild(tr);
+  });
+  body.querySelectorAll(".score-link").forEach((btn) => {
+    btn.addEventListener("click", () => showReport(btn.dataset.matchId));
   });
 }
 

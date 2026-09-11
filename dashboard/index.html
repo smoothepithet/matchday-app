@@ -157,11 +157,49 @@
     font-size: 14px;
     padding: 12px 0;
   }
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #e2e2e2;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    padding: 10px 14px;
+    margin-bottom: -1px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #888;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+  }
+  .tab-btn.active {
+    color: var(--void);
+    border-bottom-color: var(--void);
+  }
+  .tab-panel.hidden { display: none; }
+  .score-link {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    font-weight: inherit;
+    color: var(--void);
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
   .report-card {
     border: 1px solid #eee;
     border-radius: 10px;
     padding: 14px 16px;
     margin-bottom: 12px;
+    transition: background-color 0.3s ease;
+  }
+  .report-card.highlight {
+    background-color: #ececec;
   }
   .report-card:last-child { margin-bottom: 0; }
   .report-card-header {
@@ -277,76 +315,85 @@
     Add your Supabase URL and anon key at the top of <code>dashboard/app.js</code> to load live data.
   </div>
 
-  <div class="stat-tile">
-    <div class="stat-tile-label">Clean sheets</div>
-    <div class="stat-tile-value" id="clean-sheets-value">0</div>
+  <div class="tabs">
+    <button type="button" class="tab-btn active" data-tab="overview">Overview</button>
+    <button type="button" class="tab-btn" data-tab="reports">Match Reports</button>
   </div>
 
-  <div class="panel">
-    <h2>Player Stats</h2>
-    <table id="stats-table">
-      <thead>
-        <tr><th>Player</th><th class="num">Apps</th><th class="num">Goals</th><th class="num">Assists</th><th class="num">Saves</th></tr>
-      </thead>
-      <tbody id="stats-body"></tbody>
-    </table>
-    <div id="stats-empty" class="empty-state hidden">No matches recorded yet.</div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-header">
-      <h2>Results</h2>
-      <div class="filters">
-        <select id="filter-venue">
-          <option value="">All Venues</option>
-          <option value="home">Home</option>
-          <option value="away">Away</option>
-        </select>
-        <select id="filter-result">
-          <option value="">All Results</option>
-          <option value="W">Win</option>
-          <option value="D">Draw</option>
-          <option value="L">Loss</option>
-        </select>
-      </div>
+  <div id="tab-overview" class="tab-panel">
+    <div class="stat-tile">
+      <div class="stat-tile-label">Clean sheets</div>
+      <div class="stat-tile-value" id="clean-sheets-value">0</div>
     </div>
-    <table id="results-table">
-      <thead>
-        <tr><th>Date</th><th>Opposition</th><th>Venue</th><th class="num">Score</th><th class="num">Result</th></tr>
-      </thead>
-      <tbody id="results-body"></tbody>
-    </table>
-    <div id="results-empty" class="empty-state hidden">No completed matches yet.</div>
-    <div id="results-filtered-empty" class="empty-state hidden">No results match the selected filters.</div>
-  </div>
 
-  <div class="panel">
-    <div class="panel-header">
-      <h2>Season Awards</h2>
-      <div class="filters">
-        <select id="filter-award-type">
-          <option value="">All Awards</option>
-          <option value="training_potw">Training POTW</option>
-          <option value="managers_potw">Manager's POTW</option>
-          <option value="parents_potw">Parents' POTW</option>
-          <option value="player_of_month">Player of the Month</option>
-        </select>
-      </div>
+    <div class="panel">
+      <h2>Player Stats</h2>
+      <table id="stats-table">
+        <thead>
+          <tr><th>Player</th><th class="num">Apps</th><th class="num">Goals</th><th class="num">Assists</th><th class="num">Saves</th></tr>
+        </thead>
+        <tbody id="stats-body"></tbody>
+      </table>
+      <div id="stats-empty" class="empty-state hidden">No matches recorded yet.</div>
     </div>
-    <table id="awards-table">
-      <thead>
-        <tr><th>Date</th><th>Award</th><th>Player</th></tr>
-      </thead>
-      <tbody id="awards-body"></tbody>
-    </table>
-    <div id="awards-empty" class="empty-state hidden">No awards recorded yet.</div>
-    <div id="awards-filtered-empty" class="empty-state hidden">No awards match the selected filter.</div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Results</h2>
+        <div class="filters">
+          <select id="filter-venue">
+            <option value="">All Venues</option>
+            <option value="home">Home</option>
+            <option value="away">Away</option>
+          </select>
+          <select id="filter-result">
+            <option value="">All Results</option>
+            <option value="W">Win</option>
+            <option value="D">Draw</option>
+            <option value="L">Loss</option>
+          </select>
+        </div>
+      </div>
+      <table id="results-table">
+        <thead>
+          <tr><th>Date</th><th>Opposition</th><th>Venue</th><th class="num">Score</th><th class="num">Result</th></tr>
+        </thead>
+        <tbody id="results-body"></tbody>
+      </table>
+      <div id="results-empty" class="empty-state hidden">No completed matches yet.</div>
+      <div id="results-filtered-empty" class="empty-state hidden">No results match the selected filters.</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Season Awards</h2>
+        <div class="filters">
+          <select id="filter-award-type">
+            <option value="">All Awards</option>
+            <option value="training_potw">Training POTW</option>
+            <option value="managers_potw">Manager's POTW</option>
+            <option value="parents_potw">Parents' POTW</option>
+            <option value="player_of_month">Player of the Month</option>
+          </select>
+        </div>
+      </div>
+      <table id="awards-table">
+        <thead>
+          <tr><th>Date</th><th>Award</th><th>Player</th></tr>
+        </thead>
+        <tbody id="awards-body"></tbody>
+      </table>
+      <div id="awards-empty" class="empty-state hidden">No awards recorded yet.</div>
+      <div id="awards-filtered-empty" class="empty-state hidden">No awards match the selected filter.</div>
+    </div>
   </div>
 
-  <div class="panel">
-    <h2>Match Reports</h2>
-    <div id="reports-list"></div>
-    <div id="reports-empty" class="empty-state hidden">No match reports yet.</div>
+  <div id="tab-reports" class="tab-panel hidden">
+    <div class="panel">
+      <h2>Match Reports</h2>
+      <div id="reports-list"></div>
+      <div id="reports-empty" class="empty-state hidden">No match reports yet.</div>
+    </div>
   </div>
 </main>
 <script src="app.js"></script>

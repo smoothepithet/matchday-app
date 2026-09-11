@@ -211,7 +211,13 @@ Working:
   score) directly. Results filterable by venue/result, awards filterable
   by award type — client-side over the already-fetched data
   (`allResults`/`allAwards`), not separate queries per filter change.
-  Match Reports panel is read-only, newest first, no filters.
+  Two tabs (`switchTab()`): Overview (stat tile + Player Stats/Results/
+  Awards panels) and Match Reports (read-only, newest first, no
+  filters). A Results row's score is a clickable `.score-link` whenever
+  that match has a generated report (checked against `reportMatchIds`,
+  a `Set` of `match_id`s built from the `reports` fetch) — clicking it
+  switches to the Reports tab and scrolls/briefly highlights
+  (`showReport()`) the matching card, id'd `report-${match_id}`.
 - Automatic match reports: pressing "End Match" POSTs the match's events
   to `self-host/report-service` (stdlib-only, no deps), which prompts an
   **Ollama Cloud** model (`OLLAMA_MODEL`, default `gpt-oss:120b` — no
