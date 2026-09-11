@@ -193,11 +193,19 @@ async function loadDashboard() {
     allResults = await resultsRes.json();
     allAwards = await awardsRes.json();
     renderStats(stats);
+    renderCleanSheets(allResults);
     applyResultsFilters();
     applyAwardsFilters();
   } catch (err) {
     console.error("Dashboard load failed:", err);
   }
+}
+
+// Season total, deliberately not affected by the Results filters below —
+// same "whole-season headline stat" treatment as Player Stats.
+function renderCleanSheets(results) {
+  const count = results.filter((r) => r.their_score === 0).length;
+  document.getElementById("clean-sheets-value").textContent = count;
 }
 
 const AWARD_LABELS = {

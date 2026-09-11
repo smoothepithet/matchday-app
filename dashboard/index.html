@@ -57,6 +57,27 @@
     margin-bottom: 24px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   }
+  .stat-tile {
+    background: #fff;
+    border: 1px solid #e2e2e2;
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .stat-tile-label {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #777;
+    margin-bottom: 6px;
+  }
+  .stat-tile-value {
+    font-size: 36px;
+    font-weight: 600;
+    color: var(--void);
+    line-height: 1;
+  }
   .panel h2 {
     font-size: 13px;
     text-transform: uppercase;
@@ -214,6 +235,11 @@
 <main id="dashboard-content" class="hidden">
   <div id="config-notice" class="config-notice hidden">
     Add your Supabase URL and anon key at the top of <code>dashboard/app.js</code> to load live data.
+  </div>
+
+  <div class="stat-tile">
+    <div class="stat-tile-label">Clean sheets</div>
+    <div class="stat-tile-value" id="clean-sheets-value">0</div>
   </div>
 
   <div class="panel">
