@@ -55,6 +55,17 @@ token permissions across two separate zones.
     setup here, but worth knowing if this ever grows a second hostname
     again — the fix would be explicit `tls.domains[0].main`/`.sans`
     labels.
+  - If the admin API (or sign-in) returns a 500 `"Database error
+    checking email"` / logs show `relation "identities" does not exist`
+    even though `\dt auth.*` clearly shows the table exists — this is
+    `search_path`, not a missing table. GoTrue's own migrations fully
+    qualify table names (`auth.users`, ...) so schema setup works fine
+    without it, but its runtime ORM queries use unqualified names and
+    rely on the connection's default `search_path` to resolve them.
+    `GOTRUE_DB_DATABASE_URL` needs `?options=-c%20search_path%3Dauth`
+    appended (already in `docker-compose.yml`) — a plain `postgres://...`
+    URL with no `search_path` set looks in `public` by default and
+    silently can't find anything in `auth`.
 
 ## 2. Configure
 

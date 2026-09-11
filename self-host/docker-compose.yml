@@ -44,7 +44,14 @@ services:
       - postgres
     environment:
       GOTRUE_DB_DRIVER: postgres
-      GOTRUE_DB_DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-matchday}
+      # search_path=auth is required: GoTrue's migration files fully
+      # qualify table names (auth.users, auth.identities, ...) so schema
+      # creation works fine without it, but its runtime ORM queries use
+      # unqualified names ("identities", not "auth.identities") and rely
+      # on the connection's default search_path to resolve them - without
+      # this, every runtime query 42P01s ("relation does not exist") even
+      # though the table is right there in the auth schema.
+      GOTRUE_DB_DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-matchday}?options=-c%20search_path%3Dauth
       GOTRUE_SITE_URL: https://${APP_HOSTNAME}
       GOTRUE_DISABLE_SIGNUP: "true"
       GOTRUE_JWT_SECRET: ${JWT_SECRET}
