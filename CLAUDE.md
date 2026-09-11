@@ -160,8 +160,17 @@ served from.
 ## Data model (`schema.sql`)
 
 - `players` — `name`, `squad_number`, `active`
-- `matches` — `opposition`, `match_date`, `venue` (home/away), `competition`,
-  `our_score`, `their_score`, `status`
+- `matches` — `opposition`, `match_date`, `venue`, `competition`,
+  `our_score`, `their_score`, `status`. `venue` is free text, not a
+  home/away enum — league and cup matches are always played at one of
+  several shared centres (Rushall, Chasetown, Bilston, more added as
+  they're confirmed over the season), never at a Wyrley "home" ground.
+  `record/index.html` offers these (plus "Home"/"Away", still valid for
+  a genuine two-team friendly fixture) as a `<datalist>` on a free-text
+  input, so a coach can type a new centre the moment it's confirmed with
+  no code change needed. `dashboard`'s Venue filter is built dynamically
+  from whatever venue names are actually in the data
+  (`populateVenueFilter()`), not a hard-coded list.
 - `events` — one row per goal / assist / save / goal_against, linked to a
   match and (eventually) a player. `goal_against` means "the opposition's
   score went up" — the recorder's single Goal Them button doesn't

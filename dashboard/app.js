@@ -252,12 +252,31 @@ async function loadDashboard() {
     renderCleanSheets(allResults);
     renderRecord(allResults);
     renderGoalsChart(allResults);
+    populateVenueFilter(allResults);
     applyResultsFilters();
     applyAwardsFilters();
     renderReports(Array.isArray(reports) ? reports : []);
   } catch (err) {
     console.error("Dashboard load failed:", err);
   }
+}
+
+// Venue is free text now (named centres like Rushall/Chasetown/Bilston,
+// not a fixed home/away pair — the team never actually plays "home" in
+// league/cup, those are all shared centres), so the filter's options
+// are built from whatever's actually in the data instead of hard-coded.
+function populateVenueFilter(results) {
+  const select = document.getElementById("filter-venue");
+  const previous = select.value;
+  const venues = [...new Set(results.map((r) => r.venue).filter(Boolean))].sort();
+  select.innerHTML = '<option value="">All Venues</option>';
+  venues.forEach((v) => {
+    const option = document.createElement("option");
+    option.value = v;
+    option.textContent = v;
+    select.appendChild(option);
+  });
+  if (venues.includes(previous)) select.value = previous;
 }
 
 // Season total, deliberately not affected by the Results filters below —

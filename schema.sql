@@ -9,11 +9,18 @@ create table if not exists players (
   created_at timestamptz not null default now()
 );
 
+-- venue is free text, not a home/away enum: league and cup matches are
+-- always played at one of several shared centres (Rushall, Chasetown,
+-- Bilston, ...), never at a Wyrley "home" ground, and the list of
+-- centres grows over the season. "Home"/"Away" are still perfectly
+-- valid values here for friendlies (a genuine two-team home/away
+-- fixture) - they're just free text like everything else now, not the
+-- only two options.
 create table if not exists matches (
   id uuid primary key default gen_random_uuid(),
   opposition text not null,
   match_date date not null,
-  venue text check (venue in ('home', 'away')) not null,
+  venue text not null,
   competition text,                 -- e.g. "League", "Cup", "Friendly"
   our_score int not null default 0,
   their_score int not null default 0,
@@ -21,6 +28,12 @@ create table if not exists matches (
     check (status in ('scheduled', 'in_progress', 'completed')),
   created_at timestamptz not null default now()
 );
+
+-- Migration for a database initialized before venue became free text:
+-- drop the old home/away-only CHECK constraint. No data change needed
+-- - existing 'home'/'away' rows are already valid free text. Safe to
+-- run repeatedly.
+alter table matches drop constraint if exists matches_venue_check;
 
 -- One row per notable moment: goal, assist, save, and optionally
 -- cards / substitutions later if you want to extend it. goal_against

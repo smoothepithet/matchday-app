@@ -85,7 +85,14 @@ html, body { margin: 0; padding: 0; background: #d8d8d8; font-family: -apple-sys
       <label>Opposition</label>
       <input id="opposition" type="text" value="Riverside Rovers U10" />
       <label>Venue</label>
-      <select id="venue"><option value="home" selected>Home</option><option value="away">Away</option></select>
+      <input id="venue" type="text" list="venue-suggestions" placeholder="e.g. Rushall" value="Rushall" />
+      <datalist id="venue-suggestions">
+        <option value="Rushall"></option>
+        <option value="Chasetown"></option>
+        <option value="Bilston"></option>
+        <option value="Home"></option>
+        <option value="Away"></option>
+      </datalist>
       <label>Squad</label>
       <button type="button" class="squad-link-btn" id="manage-squad-btn">Manage Squad <span id="squad-count-badge">(5 players)</span> →</button>
       <button class="start-btn" id="start-match-btn">Kick Off</button>
@@ -189,12 +196,12 @@ renderSquadList(); updateBadge();
 
 document.getElementById("start-match-btn").addEventListener("click", () => {
   const opposition = document.getElementById("opposition").value.trim() || "Opposition";
-  const venue = document.getElementById("venue").value;
+  const venue = document.getElementById("venue").value.trim() || "Venue TBC";
   match = { opposition, venue, our_score: 0, their_score: 0, events: [] };
   document.getElementById("setup").classList.add("hidden");
   document.getElementById("match-screen").classList.remove("hidden");
   document.getElementById("fixture-label").textContent =
-    venue === "home" ? `Wyrley Rockets vs ${opposition}` : `${opposition} vs Wyrley Rockets`;
+    venue.toLowerCase() === "away" ? `${opposition} vs Wyrley Rockets` : `Wyrley Rockets vs ${opposition}`;
   renderScore(); renderLog();
 });
 function renderScore() {

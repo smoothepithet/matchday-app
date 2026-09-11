@@ -56,10 +56,14 @@
     <input id="match-date" type="date" />
 
     <label for="venue">Venue</label>
-    <select id="venue">
-      <option value="home">Home</option>
-      <option value="away">Away</option>
-    </select>
+    <input id="venue" type="text" list="venue-suggestions" placeholder="e.g. Rushall" autocomplete="off" />
+    <datalist id="venue-suggestions">
+      <option value="Rushall"></option>
+      <option value="Chasetown"></option>
+      <option value="Bilston"></option>
+      <option value="Home"></option>
+      <option value="Away"></option>
+    </datalist>
 
     <label for="competition">Competition</label>
     <select id="competition">

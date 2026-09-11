@@ -591,7 +591,7 @@ function initApp() {
 
     const opposition = document.getElementById("opposition").value.trim() || "Opposition";
     const matchDate = document.getElementById("match-date").value;
-    const venue = document.getElementById("venue").value;
+    const venue = document.getElementById("venue").value.trim() || "Venue TBC";
     const competition = document.getElementById("competition").value.trim();
 
     match = {
@@ -611,10 +611,14 @@ function initApp() {
 
     document.getElementById("setup").classList.add("hidden");
     document.getElementById("match-screen").classList.remove("hidden");
+    // venue is free text now (a named centre for league/cup, or
+    // literally "Home"/"Away" for a friendly) — only flip the fixture
+    // order for an explicit "Away", everything else (a neutral centre,
+    // "Home", or anything not recognized) reads as us first.
     document.getElementById("fixture-label").textContent =
-      venue === "home"
-        ? `${CONFIG.TEAM_NAME} vs ${match.opposition}`
-        : `${match.opposition} vs ${CONFIG.TEAM_NAME}`;
+      venue.toLowerCase() === "away"
+        ? `${match.opposition} vs ${CONFIG.TEAM_NAME}`
+        : `${CONFIG.TEAM_NAME} vs ${match.opposition}`;
 
     // Defensive reset in case a previous match ended mid-pause — the
     // pause state itself is on the new match object either way, but
