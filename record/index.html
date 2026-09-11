@@ -51,7 +51,13 @@
     </select>
 
     <label for="competition">Competition</label>
-    <input id="competition" type="text" placeholder="League / Cup / Friendly" />
+    <select id="competition">
+      <option value="" disabled selected>Select competition</option>
+      <option value="League">League</option>
+      <option value="Cup">Cup</option>
+      <option value="Friendly">Friendly</option>
+      <option value="Tournament">Tournament</option>
+    </select>
 
     <label>Squad</label>
     <button type="button" class="squad-link-btn" id="manage-squad-btn">

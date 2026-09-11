@@ -341,12 +341,21 @@ body {
 
 .setup input, .setup select {
   width: 100%;
-  padding: 12px;
+  height: 46px;
+  padding: 0 12px;
   border-radius: 10px;
   border: 1px solid var(--steel-light);
   background: var(--panel);
   color: var(--white);
   font-size: 16px;
+}
+
+/* Mobile browsers (notably iOS Safari) render the native date-picker
+   chrome with its own intrinsic height that padding alone doesn't
+   fully constrain, making it taller than the other fields despite
+   sharing the same rule above — force it in line explicitly. */
+.setup input[type="date"] {
+  line-height: 46px;
 }
 
 .setup .start-btn {
