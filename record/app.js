@@ -775,14 +775,15 @@ async function saveAward(award) {
     alert("Not signed in — award saved on this device, will sync once signed in.");
     return;
   }
+  const headers = {
+    "Content-Type": "application/json",
+    apikey: CONFIG.SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${session.access_token}`,
+  };
+  let res;
   try {
-    const headers = {
-      "Content-Type": "application/json",
-      apikey: CONFIG.SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${session.access_token}`,
-    };
     const playerId = await resolvePlayerId(headers, award.player_name);
-    await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/awards`, {
+    res = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/awards`, {
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -792,9 +793,23 @@ async function saveAward(award) {
       }),
     });
   } catch (err) {
-    console.error("Award sync failed, queued for retry:", err);
+    // Genuine network failure (offline, DNS, etc.) — safe to queue and
+    // retry later, since the request never actually reached the server.
+    console.error("Award sync failed (network), queued for retry:", err);
     queueAwardForSync(award);
     alert("Offline — award saved on this device, will sync once back online.");
+    return;
+  }
+  if (!res.ok) {
+    // fetch() only rejects on network failure, NOT on HTTP error status
+    // — a 400/403/404/etc. here means the request reached the server
+    // and was rejected (bad data, missing table, RLS, ...). Retrying
+    // automatically won't fix that, so surface the real reason instead
+    // of silently pretending it saved.
+    const body = await res.json().catch(() => ({}));
+    const message = body.message || body.hint || `Server rejected the award (HTTP ${res.status})`;
+    console.error("Award save rejected by server:", res.status, body);
+    alert(`Award NOT saved — ${message}`);
   }
 }
 
