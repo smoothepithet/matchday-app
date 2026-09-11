@@ -1,7 +1,7 @@
 // Same project as recorder/app.js — keep these two in sync
 const CONFIG = {
-  SUPABASE_URL: "https://mdflfblggeimrhsltmju.supabase.co/",
-  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kZmxmYmxnZ2VpbXJoc2x0bWp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1MDUwNTcsImV4cCI6MjEwMTA4MTA1N30.K0JUwlelNKjsiIMx_-u8uuc1ocuohJO-xyGvbGgU6tA",
+  SUPABASE_URL: "https://matchday-api.shadowlan.org",       
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6Im1hdGNoZGF5LXNlbGYtaG9zdCIsImlhdCI6MTc4OTExOTc2MSwiZXhwIjoyMTA0Njk1NzYxfQ.L9_Tlu6kLFrjv-EUFrGTl6i2yUNCWopLyX0gkSJS9S8",  // your anon/public key
 };
 
 // ---------------------------------------------------------------
