@@ -28,6 +28,18 @@ const CONFIG = {
   SUPABASE_ANON_KEY: localStorage.getItem("dev_supabase_anon_key") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6Im1hdGNoZGF5LXNlbGYtaG9zdCIsImlhdCI6MTc4OTExOTc2MSwiZXhwIjoyMTA0Njk1NzYxfQ.L9_Tlu6kLFrjv-EUFrGTl6i2yUNCWopLyX0gkSJS9S8",  // your anon/public key
 };
 
+// Dev-mode indicator — same as app.js, no new accent colour.
+if (localStorage.getItem("dev_supabase_url")) {
+  const devBadge = document.createElement("div");
+  devBadge.textContent = "DEV MODE";
+  devBadge.style.cssText =
+    "position:fixed;top:0;left:0;right:0;z-index:99999;" +
+    "background:#161616;color:#ffffff;text-align:center;padding:4px 0;" +
+    "font:bold 12px/1.4 'Courier New',monospace;letter-spacing:2px;" +
+    "border-bottom:2px dashed #3d3d3d;";
+  document.body.appendChild(devBadge);
+}
+
 // ---------------------------------------------------------------
 // Storage helpers (same pattern as recorder/app.js)
 // ---------------------------------------------------------------

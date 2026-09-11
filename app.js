@@ -44,6 +44,22 @@ const CONFIG = {
 };
 
 // ---------------------------------------------------------------
+// Dev-mode indicator — impossible to miss, so it's never ambiguous
+// which backend you're actually talking to. Uses only the existing
+// black/white/grey palette + dashed-border motif, no new accent colour.
+// ---------------------------------------------------------------
+if (localStorage.getItem("dev_supabase_url")) {
+  const devBadge = document.createElement("div");
+  devBadge.textContent = "DEV MODE";
+  devBadge.style.cssText =
+    "position:fixed;top:0;left:0;right:0;z-index:99999;" +
+    "background:#161616;color:#ffffff;text-align:center;padding:4px 0;" +
+    "font:bold 12px/1.4 'Courier New',monospace;letter-spacing:2px;" +
+    "border-bottom:2px dashed #3d3d3d;";
+  document.body.appendChild(devBadge);
+}
+
+// ---------------------------------------------------------------
 // Storage helpers (localStorage is fine here — a season's worth
 // of matches/events is tiny, well under the 5MB-ish browser limit)
 // ---------------------------------------------------------------
