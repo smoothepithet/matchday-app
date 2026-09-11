@@ -36,8 +36,8 @@ services:
       - traefik.http.middlewares.matchday-rest-dev-cors.headers.accessControlAllowHeaders=*
       - traefik.http.middlewares.matchday-rest-dev-cors.headers.accessControlMaxAge=86400
       - traefik.http.middlewares.matchday-rest-dev-cors.headers.addVaryHeader=true
-      - traefik.http.middlewares.matchday-rest-dev-cors.headers.customResponseHeaders.Access-Control-Allow-Private-Network=true
-      - traefik.http.routers.matchday-rest-dev.middlewares=matchday-rest-dev-cors,matchday-rest-dev-strip
+      - traefik.http.middlewares.matchday-rest-dev-pna.headers.customResponseHeaders.Access-Control-Allow-Private-Network=true
+      - traefik.http.routers.matchday-rest-dev.middlewares=matchday-rest-dev-pna,matchday-rest-dev-cors,matchday-rest-dev-strip
       - traefik.http.services.matchday-rest-dev.loadbalancer.server.port=3000
 
   gotrue-dev:
@@ -72,6 +72,6 @@ services:
       - traefik.http.middlewares.matchday-auth-dev-cors.headers.accessControlAllowHeaders=*
       - traefik.http.middlewares.matchday-auth-dev-cors.headers.accessControlMaxAge=86400
       - traefik.http.middlewares.matchday-auth-dev-cors.headers.addVaryHeader=true
-      - traefik.http.middlewares.matchday-auth-dev-cors.headers.customResponseHeaders.Access-Control-Allow-Private-Network=true
-      - traefik.http.routers.matchday-auth-dev.middlewares=matchday-auth-dev-cors,matchday-auth-dev-strip
+      - traefik.http.middlewares.matchday-auth-dev-pna.headers.customResponseHeaders.Access-Control-Allow-Private-Network=true
+      - traefik.http.routers.matchday-auth-dev.middlewares=matchday-auth-dev-pna,matchday-auth-dev-cors,matchday-auth-dev-strip
       - traefik.http.services.matchday-auth-dev.loadbalancer.server.port=9999

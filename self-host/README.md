@@ -104,8 +104,18 @@ token permissions across two separate zones.
     public IP there instead, not a private one) — only when a real
     public page is loaded by a device on the same LAN as the backend.
     Fixed by adding `Access-Control-Allow-Private-Network: true` via
-    Traefik's `headers` middleware (already in `docker-compose.yml`,
-    `customResponseHeaders` on both cors middlewares).
+    Traefik's `headers` middleware — but **not** as part of the same
+    middleware instance handling the rest of CORS. Traefik's CORS
+    (`accessControlAllow*`) fields short-circuit preflight OPTIONS
+    requests with a self-generated response, and empirically,
+    `customResponseHeaders` set on that *same* middleware doesn't make
+    it into that self-generated response (confirmed via `curl`, not
+    just docs — Traefik's own docs don't clearly state this either
+    way). Fix: a **separate** middleware holding only
+    `customResponseHeaders`, placed *before* the CORS middleware in the
+    chain (`middlewares=..-pna,..-cors,..-strip`) — Traefik's
+    middlewares wrap each other onion-style, so an earlier middleware
+    still gets to add headers to a response an inner one short-circuited.
 
 ## 2. Configure
 
