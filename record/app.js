@@ -939,11 +939,31 @@ async function syncMatch(m) {
       });
     }
 
-    await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/events`, {
+    const eventsRes = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/events`, {
       method: "POST",
       headers,
       body: JSON.stringify(eventRows),
     });
+
+    if (!eventsRes.ok) {
+      // fetch() only rejects on network failure, NOT on HTTP error status
+      // — this used to go unchecked entirely, so a rejected batch (e.g.
+      // a CHECK constraint violation on the live DB from a schema change
+      // that hadn't been migrated yet) silently dropped every event for
+      // the match — goals, saves, assists, all of it — while still
+      // reporting "Synced to dashboard ✓". The match row itself is
+      // already saved at this point (that POST succeeded above), so
+      // don't queue the whole match for retry — resyncing it would
+      // create a second, duplicate match row. Surface the real error
+      // instead, same as saveAward() does, since retrying blindly won't
+      // fix a rejected request.
+      const body = await eventsRes.json().catch(() => ({}));
+      const message = body.message || body.hint || `Server rejected the events (HTTP ${eventsRes.status})`;
+      console.error("Events sync rejected by server:", eventsRes.status, body);
+      if (statusEl) statusEl.textContent = "Match saved, but events failed to sync — see alert";
+      alert(`Match saved, but the events (goals/saves/assists) did NOT sync — ${message}`);
+      return null;
+    }
 
     if (statusEl) statusEl.textContent = "Synced to dashboard ✓";
     return savedMatch;

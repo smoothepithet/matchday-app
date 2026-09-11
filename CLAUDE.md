@@ -328,6 +328,21 @@ Working:
   e.g. after `syncSquadFromSupabase()` pulls in an update mid-setup).
   The checked names are captured as `match.todaySquad` at kickoff and
   turned into `appearance` event rows on sync.
+- `syncMatch()`'s events POST is checked for `res.ok` (mirroring the fix
+  already applied to `saveAward()`) — it previously wasn't, so a
+  rejected batch (e.g. deploying the `appearance` event type change to
+  the recorder before running its `schema.sql` migration on the live
+  DB, so the old CHECK constraint rejected every event) silently
+  dropped an entire match's events — goals, saves, assists, all of it —
+  while still reporting "Synced to dashboard ✓". A real rejection now
+  surfaces via `alert()` and returns `null` instead of the saved match
+  (so `generateAndSaveReport()` correctly doesn't run). It does *not*
+  queue the match for retry on this path, unlike a genuine network
+  failure — the `matches` row already saved by that point, so retrying
+  the whole match would create a duplicate. Moral: after any
+  `schema.sql` change, run `self-host/deploy.sh` (or the manual
+  migration steps) on the live DB *before* relying on the matching app
+  change in production.
 
 Known gaps (in priority order for next work):
 1. **No automated social posting.** Meta (Instagram/Facebook) requires app
