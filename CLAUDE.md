@@ -162,8 +162,21 @@ served from.
 - `players` — `name`, `squad_number`, `active`
 - `matches` — `opposition`, `match_date`, `venue` (home/away), `competition`,
   `our_score`, `their_score`, `status`
-- `events` — one row per goal / assist / save / own_goal, linked to a match
-  and (eventually) a player. Goal events also carry `goal_type`
+- `events` — one row per goal / assist / save / goal_against, linked to a
+  match and (eventually) a player. `goal_against` means "the opposition's
+  score went up" — the recorder's single Goal Them button doesn't
+  distinguish how (open play, penalty, a genuine own goal), so this
+  covers all of it. Used to be mislabeled `own_goal`, which is wrong for
+  the common case and, worse, fed raw unlabeled text straight into the
+  report prompt — that's why generated reports once described a normal
+  conceded goal as a nonsensical "home goal". `schema.sql` includes a
+  migration (`update events set event_type = 'goal_against' where
+  event_type = 'own_goal'` + swapping the CHECK constraint) for an
+  already-initialized database; both `self-host/report-service` and
+  `generate_report.py` now map every `event_type` through an
+  `EVENT_TYPE_LABELS` dict to plain English before it reaches the
+  prompt, so this class of bug (raw internal names leaking into
+  LLM-facing text) can't recur silently. Goal events also carry `goal_type`
   (`open_play` / `free_kick` / `penalty`, null for non-goal events) —
   added via `alter table events add column if not exists ...` rather than
   folded into the original `create table`, so re-running `schema.sql`

@@ -23,16 +23,39 @@ create table if not exists matches (
 );
 
 -- One row per notable moment: goal, assist, save, and optionally
--- cards / substitutions later if you want to extend it.
+-- cards / substitutions later if you want to extend it. goal_against
+-- means "the opposition's score went up" (the recorder's single Goal
+-- Them button doesn't distinguish how - run of play, penalty, a
+-- genuine own goal by one of ours - so this covers all of it); it used
+-- to be mislabeled 'own_goal', which is wrong for the common case
+-- (most conceded goals are NOT our own player scoring into their own
+-- net) and, worse, fed misleading raw text straight into the
+-- auto-generated match report's prompt with no context, which is why
+-- reports started describing a normal opposition goal as a "home
+-- goal" - the model was left guessing what an unlabeled 'own_goal'
+-- event meant. Renamed here; see the migration block below for
+-- fixing up an already-initialized database.
 create table if not exists events (
   id uuid primary key default gen_random_uuid(),
   match_id uuid not null references matches(id) on delete cascade,
   player_id uuid references players(id) on delete set null,
   event_type text not null
-    check (event_type in ('goal', 'assist', 'save', 'own_goal')),
+    check (event_type in ('goal', 'assist', 'save', 'goal_against')),
   minute int,                       -- optional, nice for the report
   created_at timestamptz not null default now()
 );
+
+-- Migration for a database initialized before the rename above: fix
+-- existing rows, then swap the CHECK constraint to match. Must update
+-- the data BEFORE dropping the old constraint (it still only allows
+-- 'own_goal' until this point) and re-add it with the new allowed set
+-- straight after, so the table is never left without a check in
+-- between. Safe to run repeatedly - the UPDATE is a no-op with no
+-- matching rows, and both ALTERs use IF EXISTS.
+update events set event_type = 'goal_against' where event_type = 'own_goal';
+alter table events drop constraint if exists events_event_type_check;
+alter table events add constraint events_event_type_check
+  check (event_type in ('goal', 'assist', 'save', 'goal_against'));
 
 -- Only meaningful for event_type = 'goal' (null otherwise). Uses ALTER
 -- rather than being folded into the CREATE TABLE above so re-running

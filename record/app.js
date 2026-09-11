@@ -831,7 +831,12 @@ async function syncMatch(m) {
       eventRows.push({
         match_id: savedMatch.id,
         player_id: await resolvePlayerId(headers, e.player),
-        event_type: e.type === "goal_them" ? "own_goal" : e.type,
+        // "goal_against" — the opposition's score went up, regardless of
+        // how (open play, penalty, a genuine own goal). Used to be
+        // mislabeled "own_goal" here, which fed misleading raw text into
+        // the report prompt with no player/context and made reports
+        // describe a normal conceded goal as a nonsensical "home goal".
+        event_type: e.type === "goal_them" ? "goal_against" : e.type,
         minute: e.minute,
         goal_type: e.type === "goal" ? e.goal_type || "open_play" : null,
       });
@@ -881,7 +886,7 @@ async function generateAndSaveReport(matchId, m) {
   if (!session) return;
 
   const events = m.events.map((e) => ({
-    event_type: e.type === "goal_them" ? "own_goal" : e.type,
+    event_type: e.type === "goal_them" ? "goal_against" : e.type,
     minute: e.minute,
     player_name: e.player || null,
     goal_type: e.type === "goal" ? e.goal_type || "open_play" : null,

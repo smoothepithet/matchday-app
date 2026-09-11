@@ -51,9 +51,22 @@ def fetch_match(match_id: str) -> dict:
     return match
 
 
+# Raw event_type values are internal names, not sentences - printing
+# them straight into the prompt gave the model no context for
+# "own_goal" (the old, mislabeled name for a normal conceded goal) and
+# it filled the gap with a guess, which is how a report once turned a
+# routine opposition goal into a nonsensical "home goal".
+EVENT_TYPE_LABELS = {
+    "goal": "goal",
+    "assist": "assist",
+    "save": "save",
+    "goal_against": "goal conceded (opposition scored)",
+}
+
+
 def build_prompt(match: dict) -> str:
     events_text = "\n".join(
-        f"- Minute {e.get('minute', '?')}: {e['event_type']}"
+        f"- Minute {e.get('minute', '?')}: {EVENT_TYPE_LABELS.get(e['event_type'], e['event_type'])}"
         + (f" (player_id: {e['player_id']})" if e.get("player_id") else "")
         for e in match["events"]
     )

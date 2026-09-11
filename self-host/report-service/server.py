@@ -72,11 +72,24 @@ def verify_jwt(token: str) -> dict:
 
 GOAL_TYPE_LABELS = {"open_play": "open play", "free_kick": "free kick", "penalty": "penalty"}
 
+# Raw event_type values are internal names, not sentences - printing
+# them straight into the prompt (as this used to do for "own_goal")
+# gives the model no context and it fills the gap with a guess, which
+# is how a normal conceded goal once turned into a nonsensical "home
+# goal" in a generated report. Every value gets a plain-English label
+# here instead.
+EVENT_TYPE_LABELS = {
+    "goal": "goal",
+    "assist": "assist",
+    "save": "save",
+    "goal_against": "goal conceded (opposition scored)",
+}
+
 
 def build_prompt(match: dict) -> str:
     events = match.get("events") or []
     events_text = "\n".join(
-        f"- Minute {e.get('minute', '?')}: {e.get('event_type')}"
+        f"- Minute {e.get('minute', '?')}: {EVENT_TYPE_LABELS.get(e.get('event_type'), e.get('event_type'))}"
         + (f" ({e['player_name']})" if e.get("player_name") else "")
         + (f" — {GOAL_TYPE_LABELS[e['goal_type']]}" if e.get("goal_type") and e["goal_type"] != "open_play" else "")
         for e in events
