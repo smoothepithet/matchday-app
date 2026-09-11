@@ -50,6 +50,15 @@ create table if not exists awards (
   created_at timestamptz not null default now()
 );
 
+-- Generated match reports (see self-host/report-service) — one per
+-- match, auto-generated via Ollama Cloud right after the match syncs.
+create table if not exists reports (
+  id uuid primary key default gen_random_uuid(),
+  match_id uuid not null references matches(id) on delete cascade,
+  report_text text not null,
+  created_at timestamptz not null default now()
+);
+
 -- Handy view: season stats per player, computed on the fly
 create or replace view player_season_stats as
 select
@@ -104,6 +113,7 @@ alter table players enable row level security;
 alter table matches enable row level security;
 alter table events  enable row level security;
 alter table awards  enable row level security;
+alter table reports enable row level security;
 
 drop policy if exists "allow all for now" on players;
 drop policy if exists "allow all for now" on matches;
@@ -112,6 +122,7 @@ drop policy if exists "authenticated full access" on players;
 drop policy if exists "authenticated full access" on matches;
 drop policy if exists "authenticated full access" on events;
 drop policy if exists "authenticated full access" on awards;
+drop policy if exists "authenticated full access" on reports;
 
 create policy "authenticated full access" on players
   for all to authenticated using (true) with check (true);
@@ -121,6 +132,8 @@ create policy "authenticated full access" on events
   for all to authenticated using (true) with check (true);
 create policy "authenticated full access" on awards
   for all to authenticated using (true) with check (true);
+create policy "authenticated full access" on reports
+  for all to authenticated using (true) with check (true);
 
 -- Base table/view privileges — RLS only takes effect once a role has
 -- some grant; conversely, revoking the grant blocks anon before RLS
@@ -128,10 +141,10 @@ create policy "authenticated full access" on awards
 -- public in the client JS, but by itself it can no longer read or
 -- write anything — only a real signed-in session (via Supabase Auth)
 -- can, which is the actual security boundary.
-revoke all on players, matches, events, awards from anon;
+revoke all on players, matches, events, awards, reports from anon;
 revoke all on player_season_stats, results_log, season_awards from anon;
 revoke usage on schema public from anon;
 
 grant usage on schema public to authenticated;
-grant select, insert, update, delete on players, matches, events, awards to authenticated;
+grant select, insert, update, delete on players, matches, events, awards, reports to authenticated;
 grant select on player_season_stats, results_log, season_awards to authenticated;

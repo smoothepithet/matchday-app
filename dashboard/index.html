@@ -157,6 +157,27 @@
     font-size: 14px;
     padding: 12px 0;
   }
+  .report-card {
+    border: 1px solid #eee;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+  }
+  .report-card:last-child { margin-bottom: 0; }
+  .report-card-meta {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #888;
+    margin-bottom: 6px;
+  }
+  .report-card-text {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+  }
   .config-notice {
     background: #fff;
     border: 1px dashed #999;
@@ -301,6 +322,12 @@
     </table>
     <div id="awards-empty" class="empty-state hidden">No awards recorded yet.</div>
     <div id="awards-filtered-empty" class="empty-state hidden">No awards match the selected filter.</div>
+  </div>
+
+  <div class="panel">
+    <h2>Match Reports</h2>
+    <div id="reports-list"></div>
+    <div id="reports-empty" class="empty-state hidden">No match reports yet.</div>
   </div>
 </main>
 <script src="app.js"></script>

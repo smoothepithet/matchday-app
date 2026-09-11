@@ -169,6 +169,7 @@ async function loadDashboard() {
     document.getElementById("stats-empty").classList.remove("hidden");
     document.getElementById("results-empty").classList.remove("hidden");
     document.getElementById("awards-empty").classList.remove("hidden");
+    document.getElementById("reports-empty").classList.remove("hidden");
     return;
   }
 
@@ -184,18 +185,24 @@ async function loadDashboard() {
   };
 
   try {
-    const [statsRes, resultsRes, awardsRes] = await Promise.all([
+    const [statsRes, resultsRes, awardsRes, reportsRes] = await Promise.all([
       fetch(`${CONFIG.SUPABASE_URL}/rest/v1/player_season_stats`, { headers }),
       fetch(`${CONFIG.SUPABASE_URL}/rest/v1/results_log`, { headers }),
       fetch(`${CONFIG.SUPABASE_URL}/rest/v1/season_awards`, { headers }),
+      fetch(
+        `${CONFIG.SUPABASE_URL}/rest/v1/reports?select=id,report_text,created_at,matches(match_date,opposition,our_score,their_score)&order=created_at.desc`,
+        { headers }
+      ),
     ]);
     const stats = await statsRes.json();
     allResults = await resultsRes.json();
     allAwards = await awardsRes.json();
+    const reports = await reportsRes.json();
     renderStats(stats);
     renderCleanSheets(allResults);
     applyResultsFilters();
     applyAwardsFilters();
+    renderReports(Array.isArray(reports) ? reports : []);
   } catch (err) {
     console.error("Dashboard load failed:", err);
   }
@@ -259,6 +266,31 @@ function renderAwards(rows, hasAnyData) {
       <td><span class="number-badge">${r.squad_number ?? "-"}</span>${r.player_name}</td>
     `;
     body.appendChild(tr);
+  });
+}
+
+// Match reports — auto-generated (see self-host/report-service) right
+// after each match syncs. Read-only here; no filters, a season's worth
+// is small enough to just scroll.
+function renderReports(rows) {
+  const list = document.getElementById("reports-list");
+  const empty = document.getElementById("reports-empty");
+  list.innerHTML = "";
+  if (!rows.length) {
+    empty.classList.remove("hidden");
+    return;
+  }
+  empty.classList.add("hidden");
+  rows.forEach((r) => {
+    const m = r.matches || {};
+    const card = document.createElement("div");
+    card.className = "report-card";
+    card.innerHTML = `
+      <div class="report-card-meta">${m.match_date ?? ""} — ${m.opposition ?? "Match"} (${m.our_score ?? "?"}–${m.their_score ?? "?"})</div>
+      <p class="report-card-text"></p>
+    `;
+    card.querySelector(".report-card-text").textContent = r.report_text;
+    list.appendChild(card);
   });
 }
 

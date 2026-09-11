@@ -134,6 +134,8 @@ Fill in `.env`:
   these get embedded in a connection URI where `/`, `+`, or `=` would
   break parsing).
 - `JWT_SECRET` — generate with `openssl rand -base64 32`.
+- `OLLAMA_API_KEY`, `OLLAMA_MODEL` — only needed for match-report
+  generation, see step 13.
 
 ## 3. Start the stack
 
@@ -438,3 +440,64 @@ expose the prod key the same way.
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.dev.yml stop postgrest-dev gotrue-dev
 ```
+
+## 13. Match reports (Ollama Cloud)
+
+Pressing "End Match" in the recorder now also POSTs the match's events to
+a small `report-service` container, which asks an **Ollama Cloud** model
+to draft a short match report, and the recorder then saves the result to
+the new `reports` table via the normal authenticated PostgREST call — the
+same pattern already used for events/awards. Chosen over the coach's
+local Unraid Ollama instance specifically so that instance never needs to
+be exposed to the internet: `report-service` just calls out to Ollama's
+hosted API (`https://ollama.com/api/generate`) like any other external
+service, and the Ollama Cloud API key stays server-side only, in
+`report-service`'s environment — same reasoning as why the Anthropic key
+in `generate_report.py` is never shipped to client-side JS.
+
+`self-host/report-service/server.py` is a single stdlib-only Python
+file (no dependencies, no Dockerfile — `docker-compose.yml` just mounts
+it into the stock `python:3.12-alpine` image and runs it directly). It's
+stateless and never touches Postgres itself: it takes match+events JSON,
+calls Ollama, and returns the generated text; it's the recorder that
+writes that text to the `reports` table. Requests must carry a valid
+signed-in bearer token (verified against `JWT_SECRET`, the same secret
+PostgREST/GoTrue use) — otherwise this endpoint would be an open,
+unauthenticated way for anyone to burn through the Ollama Cloud quota.
+
+**Setup:**
+
+1. Get an API key from https://ollama.com/settings/keys and put it in
+   `OLLAMA_API_KEY` in `.env`. `OLLAMA_MODEL` defaults to
+   `gpt-oss:120b-cloud` — model names on Ollama Cloud need the `-cloud`
+   suffix; see https://ollama.com/search?c=cloud for other available
+   cloud models.
+2. `docker compose up -d` picks up the new `report-service` container
+   automatically (already in `docker-compose.yml`), routed at
+   `https://matchday-api.shadowlan.org/report/generate` via the same
+   Traefik pna/cors/strip middleware pattern as `postgrest`/`gotrue`.
+3. **The live database needs the `reports` table added manually** —
+   same situation as the `awards` table before it: `schema.sql`'s
+   `create table` statements only auto-run against an empty
+   `./data/postgres` on first init, so an already-running Postgres
+   needs the new table applied by hand and PostgREST told to reload its
+   schema cache:
+   ```bash
+   docker compose exec -T postgres psql -U postgres -d matchday < ../schema.sql
+   docker compose exec postgres psql -U postgres -d matchday -c "NOTIFY pgrst, 'reload schema';"
+   ```
+   (Running the whole `schema.sql` again is safe — every statement in it
+   is `create table if not exists` / `create or replace view`.)
+4. If you're running the dev overlay too, `report-service-dev` in
+   `docker-compose.dev.yml` reuses the same `OLLAMA_API_KEY`/
+   `OLLAMA_MODEL` from `.env` (no separate dev key needed — it's an
+   external API call, not local data) but verifies tokens against
+   `DEV_JWT_SECRET` instead, so a dev session can't call the prod
+   router or vice versa. Apply the same `reports` table migration to
+   `matchday_dev`.
+
+Report generation is best-effort only and never blocks or re-queues a
+match: by the time it runs, `syncMatch()` has already succeeded, so a
+failure here (Ollama Cloud down, over quota, offline) just means that
+one match ends up without a generated report — check the browser
+console for the actual error if one goes missing.

@@ -12,8 +12,15 @@ record/                          Match-day recorder PWA — install to a phone, 
                                   pitch-side, works offline
 dashboard/                       Private season-stats page — top scorers, assists, saves,
                                   results log
-generate_report.py               Python script that turns a match's events into a
-                                  social-media-ready report
+generate_report.py               Manual Python script (Claude-based) that turns a match's
+                                  events into a social-media-ready report — superseded day-
+                                  to-day by the automatic Ollama Cloud flow below, kept as a
+                                  standalone fallback/reference
+self-host/report-service/        Stdlib-only Python service, behind Traefik at /report on
+                                  the self-hosted backend — the recorder POSTs match events
+                                  here on "End Match" and gets a drafted report back from an
+                                  Ollama Cloud model, then saves it to the `reports` table
+                                  itself
 schema.sql                       Database schema — source of truth for the data model, run
                                   this first
 preview.html                     Standalone demo build with in-memory state (no
@@ -159,12 +166,17 @@ served from.
   the training award, so `period_date` just means "which week/month
   this represents" (week-ending Sunday, or first-of-month for the
   monthly award).
+- `reports` — `match_id`, `report_text`, `created_at`. One row per match,
+  written by `record/app.js` right after a successful `syncMatch()`, using
+  the text returned by `self-host/report-service` (Ollama Cloud). Not
+  auto-created on an already-running Postgres — same "migrate the live DB
+  by hand" situation `awards` hit, see `self-host/README.md` step 13.
 - Views: `player_season_stats` (goals/assists/saves/appearances per player,
   includes `squad_number`), `results_log` (W/D/L per completed match),
   `season_awards` (award history joined with player name/squad_number)
 
 RLS now requires a signed-in Supabase Auth session (`to authenticated`
-policies) — the `anon` role has no grants at all on the 4 tables or the 3
+policies) — the `anon` role has no grants at all on the 5 tables or the 3
 views. Both apps gate their UI behind a login screen (single shared coach
 email/password account) and send the user's access token as the bearer on
 every data call; the anon key alone can no longer read or write anything.
@@ -186,12 +198,26 @@ Working:
   `resolvePlayerId()` for the player lookup. Own offline queue
   (`localStorage` key `award_sync_queue`), flushed on the same `online`
   event as match sync. Shows the 10 most recent awards on the same screen.
-- Dashboard: reads `player_season_stats`, `results_log`, and
-  `season_awards` views directly. Results filterable by venue/result,
-  awards filterable by award type — client-side over the already-fetched
-  data (`allResults`/`allAwards`), not separate queries per filter change.
-- Report generator: pulls a match + events from Supabase, prompts Claude to
-  draft a caption-length report
+- Dashboard: reads `player_season_stats`, `results_log`, `season_awards`,
+  and `reports` (embedding its parent `matches` row for date/opposition/
+  score) directly. Results filterable by venue/result, awards filterable
+  by award type — client-side over the already-fetched data
+  (`allResults`/`allAwards`), not separate queries per filter change.
+  Match Reports panel is read-only, newest first, no filters.
+- Automatic match reports: pressing "End Match" POSTs the match's events
+  to `self-host/report-service` (stdlib-only, no deps), which prompts an
+  **Ollama Cloud** model (`OLLAMA_MODEL`, default `gpt-oss:120b-cloud`) —
+  chosen over the coach's local Unraid Ollama instance specifically so
+  that instance never has to be exposed to the internet. The service is
+  stateless (no DB access of its own) and requires a valid signed-in
+  bearer token, verified against the same `JWT_SECRET` PostgREST/GoTrue
+  use, so it can't be hit anonymously to burn through the Ollama Cloud
+  quota. `record/app.js`'s `generateAndSaveReport()` then writes the
+  returned text to `reports` itself. Best-effort only and never blocks or
+  re-queues the match — `syncMatch()` has already succeeded by the time
+  this runs, so a failure here just means that one match ends up without
+  a generated report. `generate_report.py` (manual, Claude-based) still
+  exists as a standalone fallback/reference but isn't part of this flow.
 - Auth: both recorder and dashboard are gated behind a login screen backed
   by Supabase Auth (single shared coach email/password account, created
   manually via Supabase Dashboard → Authentication → Users). Session
@@ -211,8 +237,9 @@ Working:
 Known gaps (in priority order for next work):
 1. **No automated social posting.** Meta (Instagram/Facebook) requires app
    review + business verification; X posting requires a paid API tier.
-   Current plan is manual copy-paste from the generated report — revisit
-   only if this becomes a bigger multi-team tool.
+   The report itself is now generated automatically (see above); current
+   plan is still manual copy-paste of that generated text into whatever
+   app posts it — revisit only if this becomes a bigger multi-team tool.
 2. **No report image/template**, just text.
 3. Squad sync is one-way-lazy on the push side: `syncSquadFromSupabase()`
    pulls the `players` table down into the local squad on every login/boot
@@ -261,7 +288,8 @@ deployed GitHub Pages site.
 
 ## Suggested next step
 
-Play a real match end-to-end (recorder → sync → dashboard) now that auth,
-RLS, and player ID resolution are all wired up, and confirm the per-player
-stats look right. After that, gap #1 above (social posting) is the next
-open item.
+Deploy `self-host/report-service` (get an Ollama Cloud API key, apply the
+`reports` table migration to the live DB, `docker compose up -d`), then
+play a real match end-to-end and confirm a report actually shows up on
+the dashboard after "End Match". After that, gap #1 above (social
+posting) is the next open item.

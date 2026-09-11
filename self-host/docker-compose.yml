@@ -86,6 +86,37 @@ services:
       - traefik.http.routers.matchday-auth.middlewares=matchday-auth-pna,matchday-auth-cors,matchday-auth-strip
       - traefik.http.services.matchday-auth.loadbalancer.server.port=9999
 
+  report-service:
+    image: python:3.12-alpine
+    restart: unless-stopped
+    command: python /app/server.py
+    volumes:
+      - ./report-service/server.py:/app/server.py:ro
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+      OLLAMA_API_KEY: ${OLLAMA_API_KEY}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gpt-oss:120b-cloud}
+      TEAM_NAME: "Wyrley Rockets"
+      PORT: "8080"
+    networks:
+      - matchday
+      - traefik
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${TRAEFIK_NETWORK}
+      - traefik.http.routers.matchday-report.rule=Host(`${APP_HOSTNAME}`) && PathPrefix(`/report`)
+      - traefik.http.routers.matchday-report.entrypoints=websecure
+      - traefik.http.routers.matchday-report.tls.certresolver=${TRAEFIK_CERTRESOLVER}
+      - traefik.http.middlewares.matchday-report-strip.stripprefix.prefixes=/report
+      - traefik.http.middlewares.matchday-report-cors.headers.accessControlAllowOriginList=*
+      - traefik.http.middlewares.matchday-report-cors.headers.accessControlAllowMethods=GET,POST,OPTIONS
+      - traefik.http.middlewares.matchday-report-cors.headers.accessControlAllowHeaders=*
+      - traefik.http.middlewares.matchday-report-cors.headers.accessControlMaxAge=86400
+      - traefik.http.middlewares.matchday-report-cors.headers.addVaryHeader=true
+      - traefik.http.middlewares.matchday-report-pna.headers.customResponseHeaders.Access-Control-Allow-Private-Network=true
+      - traefik.http.routers.matchday-report.middlewares=matchday-report-pna,matchday-report-cors,matchday-report-strip
+      - traefik.http.services.matchday-report.loadbalancer.server.port=8080
+
   pgbackups:
     image: prodrigestivill/postgres-backup-local:16-alpine
     restart: unless-stopped

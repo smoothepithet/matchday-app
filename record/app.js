@@ -634,11 +634,12 @@ function initApp() {
     archive.push(match);
     store.set("matches_archive", archive);
 
-    // Must await this before reloading — otherwise the reload can tear
-    // down the page mid-sync, after the match row is posted but before
-    // the events POST (which only runs after that first response
-    // resolves) ever gets a chance to fire.
-    await syncMatch(match);
+    // Must await both of these before reloading — otherwise the reload
+    // can tear down the page mid-request. Report generation is
+    // best-effort only: if it fails (Ollama Cloud down, quota, offline),
+    // the match itself is already safely synced by the time this runs.
+    const savedMatch = await syncMatch(match);
+    if (savedMatch) await generateAndSaveReport(savedMatch.id, match);
 
     alert(`Final score saved: ${CONFIG.TEAM_NAME} ${match.our_score} – ${match.their_score} ${match.opposition}`);
     window.location.reload();
@@ -805,6 +806,7 @@ async function syncMatch(m) {
     });
 
     if (statusEl) statusEl.textContent = "Synced to dashboard ✓";
+    return savedMatch;
   } catch (err) {
     console.error("Sync failed, queued for retry:", err);
     queueForSync(m);
@@ -816,6 +818,64 @@ function queueForSync(m) {
   const queue = store.get("sync_queue", []);
   queue.push(m);
   store.set("sync_queue", queue);
+}
+
+// ---------------------------------------------------------------
+// Match report generation — after a match syncs, ask the report
+// service (self-host/report-service, backed by an Ollama Cloud model)
+// to draft a short match report, then save it via the same
+// authenticated PostgREST pattern already used for events/awards.
+// Best-effort only: a failure here (Ollama Cloud down, over quota,
+// offline) never re-queues or blocks anything — the match and its
+// events are already safely synced by the time this runs, so at worst
+// a match is just missing its generated report.
+// ---------------------------------------------------------------
+async function generateAndSaveReport(matchId, m) {
+  const session = await ensureFreshSession();
+  if (!session) return;
+
+  const events = m.events.map((e) => ({
+    event_type: e.type === "goal_them" ? "own_goal" : e.type,
+    minute: e.minute,
+    player_name: e.player || null,
+  }));
+
+  let reportText;
+  try {
+    const genRes = await fetch(`${CONFIG.SUPABASE_URL}/report/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({
+        opposition: m.opposition,
+        venue: m.venue,
+        competition: m.competition,
+        our_score: m.our_score,
+        their_score: m.their_score,
+        events,
+      }),
+    });
+    const data = await genRes.json().catch(() => ({}));
+    if (!genRes.ok) throw new Error(data.error || `HTTP ${genRes.status}`);
+    reportText = data.report;
+  } catch (err) {
+    console.error("Report generation failed (match is still saved):", err);
+    return;
+  }
+  if (!reportText) return;
+
+  try {
+    await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/reports`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: CONFIG.SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ match_id: matchId, report_text: reportText }),
+    });
+  } catch (err) {
+    console.error("Saving generated report failed:", err);
+  }
 }
 
 // ---------------------------------------------------------------

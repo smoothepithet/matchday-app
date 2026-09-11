@@ -75,3 +75,34 @@ services:
       - traefik.http.middlewares.matchday-auth-dev-pna.headers.customResponseHeaders.Access-Control-Allow-Private-Network=true
       - traefik.http.routers.matchday-auth-dev.middlewares=matchday-auth-dev-pna,matchday-auth-dev-cors,matchday-auth-dev-strip
       - traefik.http.services.matchday-auth-dev.loadbalancer.server.port=9999
+
+  report-service-dev:
+    image: python:3.12-alpine
+    restart: unless-stopped
+    command: python /app/server.py
+    volumes:
+      - ./report-service/server.py:/app/server.py:ro
+    environment:
+      JWT_SECRET: ${DEV_JWT_SECRET}
+      OLLAMA_API_KEY: ${OLLAMA_API_KEY}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gpt-oss:120b-cloud}
+      TEAM_NAME: "Wyrley Rockets"
+      PORT: "8080"
+    networks:
+      - matchday
+      - traefik
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${TRAEFIK_NETWORK}
+      - traefik.http.routers.matchday-report-dev.rule=Host(`${DEV_HOSTNAME}`) && PathPrefix(`/report`)
+      - traefik.http.routers.matchday-report-dev.entrypoints=websecure
+      - traefik.http.routers.matchday-report-dev.tls.certresolver=${TRAEFIK_CERTRESOLVER}
+      - traefik.http.middlewares.matchday-report-dev-strip.stripprefix.prefixes=/report
+      - traefik.http.middlewares.matchday-report-dev-cors.headers.accessControlAllowOriginList=*
+      - traefik.http.middlewares.matchday-report-dev-cors.headers.accessControlAllowMethods=GET,POST,OPTIONS
+      - traefik.http.middlewares.matchday-report-dev-cors.headers.accessControlAllowHeaders=*
+      - traefik.http.middlewares.matchday-report-dev-cors.headers.accessControlMaxAge=86400
+      - traefik.http.middlewares.matchday-report-dev-cors.headers.addVaryHeader=true
+      - traefik.http.middlewares.matchday-report-dev-pna.headers.customResponseHeaders.Access-Control-Allow-Private-Network=true
+      - traefik.http.routers.matchday-report-dev.middlewares=matchday-report-dev-pna,matchday-report-dev-cors,matchday-report-dev-strip
+      - traefik.http.services.matchday-report-dev.loadbalancer.server.port=8080
