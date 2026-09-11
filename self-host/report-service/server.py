@@ -21,7 +21,11 @@ unauthenticated way for anyone to burn through the Ollama Cloud quota.
 Env vars:
     JWT_SECRET       same secret PostgREST/GoTrue use (HS256)
     OLLAMA_API_KEY   from https://ollama.com/settings/keys
-    OLLAMA_MODEL     e.g. gpt-oss:120b-cloud (default below)
+    OLLAMA_MODEL     e.g. gpt-oss:120b (default below) — note this is the
+                     *direct API* model name, with no "-cloud" suffix;
+                     that suffix is only used by the local `ollama` CLI
+                     to reference a cloud model, not by ollama.com's own
+                     hosted API.
     TEAM_NAME        default "Wyrley Rockets"
     PORT             default 8080
 """
@@ -37,10 +41,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 JWT_SECRET = os.environ["JWT_SECRET"]
 OLLAMA_API_KEY = os.environ["OLLAMA_API_KEY"]
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "gpt-oss:120b-cloud")
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "gpt-oss:120b")
 TEAM_NAME = os.environ.get("TEAM_NAME", "Wyrley Rockets")
 PORT = int(os.environ.get("PORT", "8080"))
-OLLAMA_URL = "https://ollama.com/api/generate"
+OLLAMA_URL = "https://ollama.com/api/chat"
 
 
 def b64url_decode(s: str) -> bytes:
@@ -94,7 +98,11 @@ hashtags. Do not invent names or stats that aren't in the data provided."""
 
 
 def call_ollama(prompt: str) -> str:
-    body = json.dumps({"model": OLLAMA_MODEL, "prompt": prompt, "stream": False}).encode()
+    body = json.dumps({
+        "model": OLLAMA_MODEL,
+        "messages": [{"role": "user", "content": prompt}],
+        "stream": False,
+    }).encode()
     req = urllib.request.Request(
         OLLAMA_URL,
         data=body,
@@ -106,7 +114,7 @@ def call_ollama(prompt: str) -> str:
     )
     with urllib.request.urlopen(req, timeout=60) as res:
         data = json.loads(res.read())
-    return (data.get("response") or "").strip()
+    return (data.get("message", {}).get("content") or "").strip()
 
 
 class Handler(BaseHTTPRequestHandler):

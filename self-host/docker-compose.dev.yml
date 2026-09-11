@@ -85,7 +85,7 @@ services:
     environment:
       JWT_SECRET: ${DEV_JWT_SECRET}
       OLLAMA_API_KEY: ${OLLAMA_API_KEY}
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-gpt-oss:120b-cloud}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gpt-oss:120b}
       TEAM_NAME: "Wyrley Rockets"
       PORT: "8080"
     networks:

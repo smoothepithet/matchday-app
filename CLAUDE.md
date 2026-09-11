@@ -206,7 +206,9 @@ Working:
   Match Reports panel is read-only, newest first, no filters.
 - Automatic match reports: pressing "End Match" POSTs the match's events
   to `self-host/report-service` (stdlib-only, no deps), which prompts an
-  **Ollama Cloud** model (`OLLAMA_MODEL`, default `gpt-oss:120b-cloud`) —
+  **Ollama Cloud** model (`OLLAMA_MODEL`, default `gpt-oss:120b` — no
+  `-cloud` suffix; that's only for the local `ollama` CLI, not direct API
+  access) —
   chosen over the coach's local Unraid Ollama instance specifically so
   that instance never has to be exposed to the internet. The service is
   stateless (no DB access of its own) and requires a valid signed-in

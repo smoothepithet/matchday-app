@@ -450,7 +450,7 @@ the new `reports` table via the normal authenticated PostgREST call — the
 same pattern already used for events/awards. Chosen over the coach's
 local Unraid Ollama instance specifically so that instance never needs to
 be exposed to the internet: `report-service` just calls out to Ollama's
-hosted API (`https://ollama.com/api/generate`) like any other external
+hosted API (`https://ollama.com/api/chat`) like any other external
 service, and the Ollama Cloud API key stays server-side only, in
 `report-service`'s environment — same reasoning as why the Anthropic key
 in `generate_report.py` is never shipped to client-side JS.
@@ -468,10 +468,14 @@ unauthenticated way for anyone to burn through the Ollama Cloud quota.
 **Setup:**
 
 1. Get an API key from https://ollama.com/settings/keys and put it in
-   `OLLAMA_API_KEY` in `.env`. `OLLAMA_MODEL` defaults to
-   `gpt-oss:120b-cloud` — model names on Ollama Cloud need the `-cloud`
-   suffix; see https://ollama.com/search?c=cloud for other available
-   cloud models.
+   `OLLAMA_API_KEY` in `.env`. `OLLAMA_MODEL` defaults to `gpt-oss:120b`
+   — this is the *direct API* model name, with no `-cloud` suffix (that
+   suffix is only used by the local `ollama` CLI to reference a cloud
+   model, not by ollama.com's own hosted API that `report-service`
+   calls). Free-tier models as of writing: `gemma4:31b`, `gpt-oss:120b`,
+   `gpt-oss:20b`, `nemotron-3-nano:30b`, `nemotron-3-super`,
+   `nemotron-3-ultra` — see https://ollama.com/search?c=cloud for the
+   current list.
 2. `docker compose up -d` picks up the new `report-service` container
    automatically (already in `docker-compose.yml`), routed at
    `https://matchday-api.shadowlan.org/report/generate` via the same
