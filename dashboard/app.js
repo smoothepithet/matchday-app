@@ -463,16 +463,23 @@ function renderReports(rows) {
     `;
     card.querySelector(".report-card-text").textContent = r.report_text;
 
+    // Copy the same summary line shown in the card header along with the
+    // report body — copying r.report_text alone (the old behaviour) drops
+    // the opposition/score/date, so pasted into WhatsApp etc. it read as
+    // a report with no idea which match it was about.
+    const copySummary = `Wyrley Rockets vs ${m.opposition ?? "Opposition"} — ${m.our_score ?? "?"}–${m.their_score ?? "?"} (${formatDate(m.match_date)})`;
+    const textToCopy = `${copySummary}\n\n${r.report_text}`;
+
     const copyBtn = card.querySelector(".copy-btn");
     copyBtn.addEventListener("click", async () => {
       try {
-        await navigator.clipboard.writeText(r.report_text);
+        await navigator.clipboard.writeText(textToCopy);
       } catch {
         // Clipboard API needs a secure context/permission — fall back to
         // the old select-and-copy trick rather than leaving the button
         // silently do nothing (e.g. non-HTTPS local testing).
         const textarea = document.createElement("textarea");
-        textarea.value = r.report_text;
+        textarea.value = textToCopy;
         textarea.style.position = "fixed";
         textarea.style.opacity = "0";
         document.body.appendChild(textarea);
