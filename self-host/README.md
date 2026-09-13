@@ -512,6 +512,17 @@ needed after every future schema change too, not just this one:
 Both are safe to rerun any time — they don't drop or reset anything,
 just apply whatever's new in `schema.sql`.
 
+**Clearing test data** — `reset-test-data.sh` empties `matches`,
+`events`, `awards`, and `reports` on the **prod** `matchday` database
+while leaving `players` alone, for wiping pre-season test matches
+without having to re-enter the squad:
+```bash
+./reset-test-data.sh   # prod only — asks for a typed "RESET" confirmation first
+```
+Unlike `deploy.sh`/`deploy-dev.sh` this one IS destructive and not
+reversible without a backup — there's deliberately no dev equivalent
+since dev data doesn't matter enough to need a script.
+
 Report generation is best-effort only and never blocks or re-queues a
 match: by the time it runs, `syncMatch()` has already succeeded, so a
 failure here (Ollama Cloud down, over quota, offline) just means that
