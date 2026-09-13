@@ -289,6 +289,51 @@ gunzip -c /mnt/user/backups/matchday-app/daily/matchday-latest.sql.gz | \
 docker compose start postgrest gotrue
 ```
 
+### Offsite copy to Google Drive
+
+`pgbackups` above protects against a bad `DELETE` or a schema mistake,
+but it's still sitting on the same physical box — a fire, theft, or
+array failure takes out the live database AND every local backup at
+once. `docker-compose.yml`'s `gdrive-sync` service closes that gap by
+syncing `BACKUP_DIR` to Google Drive once a day (it's a plain
+sync-then-sleep loop in the official `rclone/rclone` image — no cron
+daemon or custom image needed for one job a day).
+
+**One-time setup** (can't be scripted — it's your Google account
+giving consent): from `self-host/`, authorize an rclone remote called
+`gdrive`. Since the Unraid box itself has no browser, do this from a
+machine that does:
+```bash
+# On the Unraid box (or over SSH to it), from self-host/:
+docker run --rm -it -v "$(pwd)/rclone:/config/rclone" rclone/rclone:1.75 config
+```
+Walk through the wizard: `n` (new remote) → name it `gdrive` → type
+`drive` (Google Drive) → leave `client_id`/`client_secret` blank (uses
+rclone's own) → scope `drive.file` (rclone can only see/manage files
+*it* creates — plenty for this, and safer than full `drive` access to
+everything in your Drive) → leave `root_folder_id`/service account
+blank → when asked "Use auto config?", answer `n` (no browser on this
+box) — it prints a `rclone authorize "drive" ...` command. Run *that*
+command on a machine with a browser (installing rclone there if
+needed), complete the Google sign-in, then paste the token it outputs
+back into the wizard on the Unraid box. Confirm "not a team drive" and
+save.
+
+This writes `self-host/rclone/rclone.conf` — a live credential, so
+it's git-ignored, never committed. Once it exists, restart the service
+so it's picked up:
+```bash
+docker compose up -d gdrive-sync
+```
+
+**Verify it's syncing:**
+```bash
+docker compose logs gdrive-sync
+```
+Should show an initial `rclone sync` run against whatever's already in
+`BACKUP_DIR`. Check the `matchday-app-backups` folder shows up in
+Google Drive itself for final confirmation.
+
 ## 9. Exposing it later (confirmed working — see gotcha above)
 
 In the Cloudflare Zero Trust dashboard → your Tunnel → Public Hostname →

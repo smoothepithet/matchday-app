@@ -20,6 +20,10 @@ env/
 self-host/data/
 self-host/backups/
 
+# rclone's Google Drive OAuth token (self-host/README.md § Backups) —
+# a live credential, not something to commit
+self-host/rclone/
+
 # OS cruft
 .DS_Store
 Thumbs.db

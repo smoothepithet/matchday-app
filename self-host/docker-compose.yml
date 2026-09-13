@@ -140,6 +140,31 @@ services:
     networks:
       - matchday
 
+  # Offsite copy of pgbackups' dumps to Google Drive — protects against
+  # losing the Unraid box entirely (fire, theft, array failure), not just
+  # a bad DELETE. Requires a one-time interactive `rclone config` to
+  # authorize the "gdrive" remote before this can sync anything — see
+  # self-host/README.md § Backups. No custom image needed: the official
+  # one already ships a shell, so the sync-then-sleep loop below is all
+  # that's missing versus a real cron.
+  gdrive-sync:
+    image: rclone/rclone:1.75
+    restart: unless-stopped
+    depends_on:
+      - pgbackups
+    volumes:
+      - ${BACKUP_DIR:-./backups}:/backups:ro
+      - ./rclone:/config/rclone
+    entrypoint:
+      - sh
+      - -c
+      - |
+        while true; do
+          rclone sync /backups gdrive:matchday-app-backups \
+            --config /config/rclone/rclone.conf -v
+          sleep 86400
+        done
+
 networks:
   matchday:
     driver: bridge
