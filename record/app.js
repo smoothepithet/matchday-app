@@ -495,12 +495,20 @@ function undoEvent(id) {
 // ---------------------------------------------------------------
 // Player picker sheet — pulls from the saved squad, shows shirt numbers
 // ---------------------------------------------------------------
-function openPicker(title, onPick) {
+// Squad members checked in "Who's Playing Today?" — goal scorer/assist
+// pickers use this instead of the full squad, since someone not playing
+// can't score or assist. (Awards and other full-squad pickers pass no
+// `players` arg and get everyone, since awards aren't tied to a match day.)
+function playingSquad() {
+  return squad.filter((p) => todaySquadSelected.has(p.id));
+}
+
+function openPicker(title, onPick, players = squad) {
   pendingAction = onPick;
   document.getElementById("picker-title").textContent = title;
   const list = document.getElementById("picker-list");
   list.innerHTML = "";
-  squad
+  players
     .slice()
     .sort((a, b) => (a.number ?? 99) - (b.number ?? 99))
     .forEach((p) => {
@@ -718,14 +726,18 @@ function initApp() {
           // Penalties are essentially never credited with an assist, so
           // skip that prompt for them and keep live recording quick.
           if (event.goal_type !== "penalty") {
-            openPicker("Assist? (optional)", (assister) => {
-              event.assist = assister || null;
-              renderLog();
-            });
+            openPicker(
+              "Assist? (optional)",
+              (assister) => {
+                event.assist = assister || null;
+                renderLog();
+              },
+              playingSquad()
+            );
           }
         });
       }
-    });
+    }, playingSquad());
   });
 
   document.getElementById("btn-save").addEventListener("click", () => {

@@ -328,6 +328,14 @@ Working:
   e.g. after `syncSquadFromSupabase()` pulls in an update mid-setup).
   The checked names are captured as `match.todaySquad` at kickoff and
   turned into `appearance` event rows on sync.
+- The goal-scorer and assist pickers (`openPicker("Who scored?", ...)` /
+  `openPicker("Assist? (optional)", ...)`) are restricted to
+  `playingSquad()` — squad members checked in "Who's Playing Today?" —
+  rather than the full squad, since someone marked not-playing can't
+  score or assist. `openPicker(title, onPick, players = squad)` takes an
+  optional player list for this; callers that should still see everyone
+  (the awards "Who won this award?" picker, which isn't tied to a
+  specific match day) simply omit the third argument.
 - `syncMatch()`'s events POST is checked for `res.ok` (mirroring the fix
   already applied to `saveAward()`) — it previously wasn't, so a
   rejected batch (e.g. deploying the `appearance` event type change to
