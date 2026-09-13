@@ -25,7 +25,16 @@
   <div class="brand-strip">
     <span class="brand-mark">🚀</span>
     <span class="brand-name">WYRLEY ROCKETS</span>
-    <button type="button" class="logout-link hidden" id="logout-btn">Sign out</button>
+    <div class="brand-nav">
+      <!-- Same-origin, no target="_blank" — installed standalone with no
+           address bar, so this needs to stay an in-app link rather than
+           popping a full browser tab open. Hidden during a live match
+           (see btn-goal... kickoff handler in app.js) since match events
+           only live in memory until End Match syncs them — navigating
+           away mid-match would silently lose whatever's been recorded. -->
+      <a class="dashboard-link" id="dashboard-link" href="../dashboard/">Dashboard</a>
+      <button type="button" class="logout-link hidden" id="logout-btn">Sign out</button>
+    </div>
   </div>
 
   <!-- LOGIN SCREEN -->

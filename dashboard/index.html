@@ -356,8 +356,15 @@
     padding: 8px 10px;
     font-weight: 600;
   }
-  .logout-link {
+  .header-nav {
     margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+  .recorder-link,
+  .logout-link {
     background: none;
     border: none;
     color: var(--silver);
@@ -374,7 +381,14 @@
     <h1>Wyrley Rockets — Season Dashboard</h1>
     <p>Top scorers, assists, saves and results — updates as match data syncs in.</p>
   </div>
-  <button type="button" class="logout-link hidden" id="logout-btn">Sign out</button>
+  <div class="header-nav">
+    <!-- Same-origin, no target="_blank" — as an installed PWA the recorder
+         has no address bar to type into, so this needs to be an in-app
+         link that stays within the standalone window rather than popping
+         a full browser tab open. -->
+    <a class="recorder-link" href="../record/">Recorder</a>
+    <button type="button" class="logout-link hidden" id="logout-btn">Sign out</button>
+  </div>
 </header>
 
 <div id="login-screen" class="panel login-card">

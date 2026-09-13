@@ -298,6 +298,18 @@ Working:
   prompt (as "— penalty"/"— free kick", omitted for open play) so
   penalties/free kicks can show up as standout moments in the generated
   text.
+- Cross-app nav: the recorder's brand-strip has a "Dashboard" link
+  (`../dashboard/`) and the dashboard's header has a "Recorder" link
+  (`../record/`) — plain same-window `<a>` tags, deliberately not
+  `target="_blank"`, since the recorder is installed as a standalone PWA
+  (see `record/manifest.json`) with no address bar, and popping a new
+  browser tab would defeat the point. The recorder hides its Dashboard
+  link while `match-screen` is active (added/removed in the Kick Off
+  handler in `record/app.js`) because match events only live in memory
+  until End Match syncs them — navigating away mid-match would silently
+  lose whatever's been recorded; it reappears after the `location.reload()`
+  that follows End Match. The dashboard's Recorder link has no such
+  restriction (dashboard is read-only, nothing to lose).
 - Auth: both recorder and dashboard are gated behind a login screen backed
   by Supabase Auth (single shared coach email/password account, created
   manually via Supabase Dashboard → Authentication → Users). Session

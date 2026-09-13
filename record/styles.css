@@ -132,6 +132,8 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   padding: 10px 16px;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  row-gap: 6px;
   gap: 8px;
 }
 
@@ -148,8 +150,15 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   color: var(--white);
 }
 
-.logout-link {
+.brand-nav {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.dashboard-link,
+.logout-link {
   background: none;
   border: none;
   color: var(--silver);

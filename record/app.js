@@ -678,6 +678,11 @@ function initApp() {
 
     document.getElementById("setup").classList.add("hidden");
     document.getElementById("match-screen").classList.remove("hidden");
+    // Match events only live in memory until End Match syncs them, so
+    // hide the Dashboard link for the duration — navigating away now
+    // would silently lose whatever's been recorded. It reappears on the
+    // location.reload() that follows End Match.
+    document.getElementById("dashboard-link").classList.add("hidden");
     // venue is free text now (a named centre for league/cup, or
     // literally "Home"/"Away" for a friendly) — only flip the fixture
     // order for an explicit "Away", everything else (a neutral centre,
