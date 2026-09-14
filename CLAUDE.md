@@ -63,10 +63,16 @@ JS-rendered) instead of plain "←"/"→"/"⏸"/"▶" text glyphs — those
 render via whatever system font is active rather than being drawn
 consistently, so they looked thin/misaligned next to real UI. No icon
 font or CDN: everything's inline `currentColor` stroke SVG so it still
-works fully offline, matching the rest of this app's philosophy. The
-🚀/🧤 emoji stay as-is deliberately — they're the actual mascot/theming
-touches, not chrome, and emoji rendering for common ones like these is
-consistent enough not to be worth replacing. Screen transitions
+works fully offline, matching the rest of this app's philosophy. Goal
+(Us)/Save on the match screen also got custom `rocket`/`shield` icons
+(replacing the 🧤/🚀 emoji that were there originally) once it was
+clear side-by-side with the new icon set they read as inconsistent —
+the header's 🚀 brand-mark is the one deliberate exception left, since
+that's a logo/mascot touch rather than an action button. The shield
+icon uses `stroke-linejoin="miter"` rather than the `"round"` every
+other icon uses — with `round`, its top point and shoulders blurred
+into a rounded blob at 18-20px; `miter` keeps the corners crisp enough
+to actually read as a shield at that size. Screen transitions
 (`.screen` class + `@keyframes screen-in` in `record/styles.css`) and
 the picker sheet's slide-up (`@keyframes sheet-in`) fire automatically
 whenever an element goes from `display:none` to visible, so no JS

@@ -79,6 +79,15 @@ const ICONS = {
       '<line x1="10" y1="10" x2="10" y2="17"/><line x1="14" y1="10" x2="14" y2="17"/>'
   ),
   undo: svgIcon('<path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 3 3 8 8 8"/>'),
+  rocket: svgIcon(
+    '<path d="M12 3c2 1.8 3 4.5 3 7.3 0 1.7-.5 3.2-1.1 4.2h-3.8c-.6-1-1.1-2.5-1.1-4.2C9 7.5 10 4.8 12 3z"/>' +
+      '<circle cx="12" cy="9.3" r="1.1" fill="currentColor" stroke="none"/>' +
+      '<path d="M9 12.5l-2.2 1.6v2.4l2.8-1.3"/>' +
+      '<path d="M15 12.5l2.2 1.6v2.4l-2.8-1.3"/>' +
+      '<path d="M10.4 14.5v2.4c0 1.1.7 2.1 1.6 2.5.9-.4 1.6-1.4 1.6-2.5v-2.4"/>'
+  ),
+  shield:
+    '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="miter"><path d="M12 3L18 6L18 11Q18 17 12 20Q6 17 6 11L6 6Z"/></svg>',
 };
 
 // ---------------------------------------------------------------
