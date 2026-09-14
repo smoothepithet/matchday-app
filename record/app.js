@@ -49,6 +49,39 @@ const CONFIG = {
 const GOALKEEPER_NAME = "Reon";
 
 // ---------------------------------------------------------------
+// Icon set — hand-authored inline SVGs (no icon font/CDN, so they
+// render offline like everything else here) replacing the plain "←"/
+// "→"/"⏸"/"▶" glyphs that used to be scattered through the UI. Those
+// are rendered by whatever system font is active rather than drawn
+// consistently, so they looked thin/misaligned next to real text.
+// Rocket/glove emoji elsewhere are left as-is — they're this club's
+// actual mascot and read fine, unlike the leftover dingbat characters.
+// ---------------------------------------------------------------
+function svgIcon(inner) {
+  return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+}
+
+const ICONS = {
+  chevronRight: svgIcon('<polyline points="9 6 15 12 9 18"/>'),
+  chevronLeft: svgIcon('<polyline points="15 6 9 12 15 18"/>'),
+  pause: svgIcon(
+    '<rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor" stroke="none"/>' +
+      '<rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor" stroke="none"/>'
+  ),
+  play: svgIcon('<polygon points="7 4 19 12 7 20" fill="currentColor" stroke="none"/>'),
+  logout: svgIcon(
+    '<path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4"/>' +
+      '<polyline points="15 8 19 12 15 16"/><line x1="19" y1="12" x2="9" y2="12"/>'
+  ),
+  trash: svgIcon(
+    '<path d="M4 6h16"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>' +
+      '<path d="M6 6l1 14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-14"/>' +
+      '<line x1="10" y1="10" x2="10" y2="17"/><line x1="14" y1="10" x2="14" y2="17"/>'
+  ),
+  undo: svgIcon('<path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 3 3 8 8 8"/>'),
+};
+
+// ---------------------------------------------------------------
 // Dev-mode indicator — impossible to miss, so it's never ambiguous
 // which backend you're actually talking to. Uses only the existing
 // black/white/grey palette + dashed-border motif, no new accent colour.
@@ -239,7 +272,7 @@ function renderSquadList() {
       row.innerHTML = `
         <span class="number-badge">${p.number ?? "-"}</span>
         <span class="player-name">${p.name}</span>
-        <button class="remove-btn" data-id="${p.id}">remove</button>
+        <button class="remove-btn" data-id="${p.id}" aria-label="Remove ${p.name}">${ICONS.trash}</button>
       `;
       list.appendChild(row);
     });
@@ -334,7 +367,7 @@ function updateAwardPeriodInputs() {
 
 function resetAwardForm() {
   selectedAwardPlayer = null;
-  document.getElementById("award-player-btn").textContent = "Select player →";
+  document.getElementById("award-player-btn").innerHTML = `Select player ${ICONS.chevronRight}`;
   document.getElementById("award-period-date").valueAsDate = mostRecentSunday();
   document.getElementById("award-period-month").value = new Date().toISOString().slice(0, 7);
 }
@@ -426,14 +459,14 @@ function togglePause() {
     match.totalPausedMs += Date.now() - match.pausedAt;
     match.pausedAt = null;
     startClock();
-    pauseBtn.textContent = "⏸ Half Time";
+    pauseBtn.innerHTML = `${ICONS.pause} Half Time`;
     scoringBtns.forEach((b) => (b.disabled = false));
   } else {
     // pausing
     match.pausedAt = Date.now();
     clearInterval(clockInterval);
     document.getElementById("match-clock").textContent = "HALF TIME";
-    pauseBtn.textContent = "▶ Start 2nd Half";
+    pauseBtn.innerHTML = `${ICONS.play} Start 2nd Half`;
     scoringBtns.forEach((b) => (b.disabled = true));
   }
 }
@@ -459,7 +492,7 @@ function renderLog() {
     row.innerHTML = `
       <span class="minute">${e.minute}'</span>
       <span>${describeEvent(e)}</span>
-      <button class="undo" data-id="${e.id}">undo</button>
+      <button class="undo" data-id="${e.id}" aria-label="Undo">${ICONS.undo}</button>
     `;
     log.appendChild(row);
   });
@@ -593,7 +626,7 @@ function initApp() {
     openPicker("Who won this award?", (name) => {
       if (!name) return;
       selectedAwardPlayer = name;
-      document.getElementById("award-player-btn").textContent = `${name} →`;
+      document.getElementById("award-player-btn").innerHTML = `${name} ${ICONS.chevronRight}`;
     });
   });
 
@@ -696,7 +729,7 @@ function initApp() {
     // pause state itself is on the new match object either way, but
     // the button text/disabled state is DOM state that would otherwise
     // carry over from whatever it was left showing.
-    document.getElementById("btn-pause").textContent = "⏸ Half Time";
+    document.getElementById("btn-pause").innerHTML = `${ICONS.pause} Half Time`;
     [
       document.getElementById("btn-goal-us"),
       document.getElementById("btn-save"),

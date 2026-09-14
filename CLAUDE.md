@@ -55,6 +55,23 @@ used as the PWA home-screen icon), which is a real illustrated rocket;
 that's a finished badge asset, not a UI touch, so the "no literal
 illustrations" rule was never meant to cover it.
 
+`record/`'s chrome (back/forward chevrons, Half Time's pause/play,
+Sign out, remove-player, undo) uses a small hand-authored inline-SVG
+icon set (`ICONS`/`svgIcon()` near the top of `record/app.js`, plus a
+few one-off `<svg>`s in static HTML for content that's never
+JS-rendered) instead of plain "←"/"→"/"⏸"/"▶" text glyphs — those
+render via whatever system font is active rather than being drawn
+consistently, so they looked thin/misaligned next to real UI. No icon
+font or CDN: everything's inline `currentColor` stroke SVG so it still
+works fully offline, matching the rest of this app's philosophy. The
+🚀/🧤 emoji stay as-is deliberately — they're the actual mascot/theming
+touches, not chrome, and emoji rendering for common ones like these is
+consistent enough not to be worth replacing. Screen transitions
+(`.screen` class + `@keyframes screen-in` in `record/styles.css`) and
+the picker sheet's slide-up (`@keyframes sheet-in`) fire automatically
+whenever an element goes from `display:none` to visible, so no JS
+beyond the existing `classList.toggle("hidden")` calls was needed.
+
 Tokens (defined at the top of `record/styles.css`, duplicated inline in
 `dashboard/index.html` and `preview.html` — keep all three in sync if you
 change them). Both `record/` and `dashboard/` are dark (`--void` body);

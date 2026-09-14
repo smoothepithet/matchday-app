@@ -159,12 +159,20 @@ input:focus-visible, select:focus-visible, button:focus-visible {
 
 .dashboard-link,
 .logout-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   background: none;
   border: none;
   color: var(--silver);
   font-size: 11px;
   text-decoration: underline;
   cursor: pointer;
+}
+
+.logout-link .icon {
+  width: 13px;
+  height: 13px;
 }
 
 .match-screen {
@@ -249,6 +257,10 @@ input:focus-visible, select:focus-visible, button:focus-visible {
 }
 
 .action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   border: none;
   border-radius: var(--radius-lg);
   padding: 26px 12px;
@@ -259,10 +271,20 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   cursor: pointer;
 }
 
+.action-btn .icon {
+  width: 20px;
+  height: 20px;
+}
+
 .action-btn.goal-us {
   background: var(--red);
   color: var(--white);
   grid-column: span 2;
+  box-shadow: 0 6px 18px rgba(215, 25, 32, 0.35);
+}
+
+.action-btn.goal-us:active {
+  box-shadow: none;
 }
 
 .action-btn.save {
@@ -328,12 +350,23 @@ input:focus-visible, select:focus-visible, button:focus-visible {
 
 .log-entry .undo {
   margin-left: auto;
-  background: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
   border: none;
+  border-radius: var(--radius-sm);
+  background: none;
   color: var(--silver);
-  font-size: 13px;
-  text-decoration: underline;
   cursor: pointer;
+  flex-shrink: 0;
+}
+
+.log-entry .undo:active {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--white);
 }
 
 .sync-status {
@@ -472,6 +505,11 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   font-size: 17px;
   text-transform: uppercase;
   cursor: pointer;
+  box-shadow: 0 6px 18px rgba(215, 25, 32, 0.35);
+}
+
+.setup .start-btn:active {
+  box-shadow: none;
 }
 
 .squad-link-btn {
@@ -485,6 +523,10 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   font-weight: 700;
   text-align: left;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .error-banner {
@@ -523,6 +565,9 @@ input:focus-visible, select:focus-visible, button:focus-visible {
 }
 
 .back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   background: none;
   border: none;
   color: var(--white);
@@ -602,12 +647,23 @@ input:focus-visible, select:focus-visible, button:focus-visible {
 }
 
 .squad-item .remove-btn {
-  background: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
   border: none;
+  border-radius: var(--radius-sm);
+  background: none;
   color: var(--silver);
-  font-size: 13px;
-  text-decoration: underline;
   cursor: pointer;
+  flex-shrink: 0;
+}
+
+.squad-item .remove-btn:active {
+  background: rgba(215, 25, 32, 0.15);
+  color: var(--red);
 }
 
 .squad-empty {
@@ -722,4 +778,45 @@ input:focus-visible, select:focus-visible, button:focus-visible {
 
 .hidden {
   display: none !important;
+}
+
+/* --- Icon set (see ICONS in app.js) --- */
+.icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* --- Screen transitions — a plain instant hidden/unhidden swap read as
+   flat/static; animation retriggers automatically any time an element
+   goes from display:none to visible, so no JS beyond the existing
+   classList.toggle("hidden") calls is needed. --- */
+@keyframes screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.screen:not(.hidden) {
+  animation: screen-in 0.28s ease;
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.sheet-backdrop:not(.hidden) .sheet {
+  animation: sheet-in 0.22s ease;
 }

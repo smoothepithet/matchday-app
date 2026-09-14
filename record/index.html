@@ -33,12 +33,15 @@
            only live in memory until End Match syncs them — navigating
            away mid-match would silently lose whatever's been recorded. -->
       <a class="dashboard-link" id="dashboard-link" href="../dashboard/">Dashboard</a>
-      <button type="button" class="logout-link hidden" id="logout-btn">Sign out</button>
+      <button type="button" class="logout-link hidden" id="logout-btn">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4"/><polyline points="15 8 19 12 15 16"/><line x1="19" y1="12" x2="9" y2="12"/></svg>
+        Sign out
+      </button>
     </div>
   </div>
 
   <!-- LOGIN SCREEN -->
-  <section id="login-screen" class="setup">
+  <section id="login-screen" class="setup screen">
     <h1 class="screen-title">Coach Sign In</h1>
     <p class="screen-subtitle">Sign in once per device — stays signed in for offline pitch-side use.</p>
 
@@ -54,7 +57,7 @@
   </section>
 
   <!-- SETUP SCREEN -->
-  <section id="setup" class="setup hidden">
+  <section id="setup" class="setup screen hidden">
     <h1 class="screen-title">New Match</h1>
     <p class="screen-subtitle">Set this up pitch-side before kick-off.</p>
 
@@ -84,11 +87,13 @@
 
     <label>Squad</label>
     <button type="button" class="squad-link-btn" id="manage-squad-btn">
-      Manage Squad <span id="squad-count-badge">(0 players)</span> →
+      <span>Manage Squad <span id="squad-count-badge">(0 players)</span></span>
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
     </button>
 
     <button type="button" class="squad-link-btn" id="manage-awards-btn">
-      Awards →
+      <span>Awards</span>
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
     </button>
 
     <label>Who's Playing Today?</label>
@@ -99,9 +104,11 @@
   </section>
 
   <!-- SQUAD MANAGEMENT SCREEN -->
-  <section id="squad-screen" class="squad-screen hidden">
+  <section id="squad-screen" class="squad-screen screen hidden">
     <div class="squad-header">
-      <button class="back-btn" id="squad-back-btn">← Back</button>
+      <button class="back-btn" id="squad-back-btn"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>
+        Back
+      </button>
       <h1 class="screen-title">Player Profiles</h1>
     </div>
 
@@ -116,9 +123,11 @@
   </section>
 
   <!-- AWARDS SCREEN -->
-  <section id="awards-screen" class="squad-screen hidden">
+  <section id="awards-screen" class="squad-screen screen hidden">
     <div class="squad-header">
-      <button class="back-btn" id="awards-back-btn">← Back</button>
+      <button class="back-btn" id="awards-back-btn"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>
+        Back
+      </button>
       <h1 class="screen-title">Awards</h1>
     </div>
 
@@ -146,7 +155,7 @@
   </section>
 
   <!-- MATCH SCREEN -->
-  <section id="match-screen" class="match-screen hidden">
+  <section id="match-screen" class="match-screen screen hidden">
     <div class="scoreboard">
       <div class="fixture" id="fixture-label">Wyrley Rockets vs Them</div>
       <div class="score-row">
@@ -161,7 +170,7 @@
       <button class="action-btn goal-us" id="btn-goal-us">🚀 Goal (Us)</button>
       <button class="action-btn save" id="btn-save">🧤 Save</button>
       <button class="action-btn goal-them" id="btn-goal-them">Goal (Them)</button>
-      <button class="action-btn pause-btn" id="btn-pause">⏸ Half Time</button>
+      <button class="action-btn pause-btn" id="btn-pause"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor" stroke="none"/><rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor" stroke="none"/></svg> Half Time</button>
       <button class="action-btn end-match" id="btn-end-match">End Match</button>
     </div>
 
