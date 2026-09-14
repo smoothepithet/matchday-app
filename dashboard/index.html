@@ -29,25 +29,27 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
   header {
-    background: repeating-linear-gradient(135deg, #0a0a0a 0px, #0a0a0a 18px, #1a0808 18px, #1a0808 36px);
+    background: var(--void);
     color: var(--white);
-    padding: 28px 20px;
-    border-bottom: 3px solid var(--white);
+    padding: 20px;
+    border-bottom: 1px solid var(--steel);
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
+    row-gap: 8px;
     gap: 12px;
   }
-  header .rocket { font-size: 28px; transform: rotate(45deg); }
+  header .rocket { font-size: 24px; transform: rotate(45deg); }
   header h1 {
     margin: 0;
-    font-size: 22px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    font-size: 18px;
+    font-weight: 700;
+    white-space: nowrap;
   }
-  header p {
-    margin: 4px 0 0;
+  header .season {
     color: var(--silver);
     font-size: 14px;
+    flex-shrink: 0;
   }
   main {
     max-width: 900px;
@@ -57,55 +59,99 @@
   .panel {
     background: var(--panel);
     border: 1px solid var(--steel);
-    border-radius: 14px;
+    border-radius: 12px;
     padding: 18px 20px;
     margin-bottom: 24px;
   }
-  .stat-tile {
+  /* --- Headline stat cards: matches played / goals scored / clean
+     sheets / win rate. 2 columns per the reference layout, muted label
+     above a large bold number - deliberately no per-card colour so the
+     grid reads as one flat unit; red/gold stay reserved for Top
+     Scorers' bars and the result badges elsewhere on the page. --- */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
     background: var(--panel);
     border: 1px solid var(--steel);
-    border-radius: 14px;
-    padding: 18px 20px;
-    margin-bottom: 24px;
+    border-radius: 12px;
+    padding: 20px;
   }
-  .stat-tile-label {
+  .stat-card-label {
     font-size: 13px;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
     color: var(--silver);
-    margin-bottom: 6px;
+    margin-bottom: 8px;
   }
-  .stat-tile-value {
-    font-size: 36px;
-    font-weight: 600;
-    color: var(--red);
+  .stat-card-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--white);
     line-height: 1;
   }
-  .stat-row {
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-    margin-bottom: 24px;
-  }
-  .stat-row .stat-tile {
-    flex: 1;
-    min-width: 160px;
-    margin-bottom: 0;
-  }
-  .record-row {
+  /* --- Top scorers: squad-number badge + name + proportional bar +
+     count, sorted descending. Bar width is relative to the top
+     scorer's count (first row = 100%). --- */
+  .scorer-row {
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 12px;
+    padding: 10px 0;
   }
-  .record-item {
+  .scorer-row:not(:last-child) {
+    border-bottom: 1px solid var(--steel);
+  }
+  .scorer-name {
+    width: 92px;
+    flex-shrink: 0;
+    font-size: 15px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .scorer-bar-track {
+    flex: 1;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--steel);
+    overflow: hidden;
+  }
+  .scorer-bar-fill {
+    height: 100%;
+    background: var(--red);
+    border-radius: 999px;
+  }
+  .scorer-count {
+    width: 26px;
+    flex-shrink: 0;
+    text-align: right;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  /* --- Recent results: compact row list (opponent left, result+score
+     right) - a quick-glance summary above the full filterable Results
+     table further down the page. --- */
+  .recent-result-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--steel);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .recent-result-row:last-child { margin-bottom: 0; }
+  .recent-result-score {
     display: flex;
     align-items: center;
     gap: 8px;
-  }
-  .record-count {
-    font-size: 22px;
-    font-weight: 600;
-    color: var(--white);
+    flex-shrink: 0;
   }
   .panel h2 {
     font-size: 13px;
@@ -377,11 +423,9 @@
 <body>
 <header>
   <span class="rocket">🚀</span>
-  <div>
-    <h1>Wyrley Rockets — Season Dashboard</h1>
-    <p>Top scorers, assists, saves and results — updates as match data syncs in.</p>
-  </div>
+  <h1>Wyrley Rockets</h1>
   <div class="header-nav">
+    <span class="season" id="season-label"></span>
     <!-- Same-origin, no target="_blank" — as an installed PWA the recorder
          has no address bar to type into, so this needs to be an in-app
          link that stays within the standalone window rather than popping
@@ -410,19 +454,35 @@
   </div>
 
   <div id="tab-overview" class="tab-panel">
-    <div class="stat-row">
-      <div class="stat-tile">
-        <div class="stat-tile-label">Season record</div>
-        <div class="record-row">
-          <div class="record-item"><span class="result-badge result-W">W</span><span class="record-count" id="record-w">0</span></div>
-          <div class="record-item"><span class="result-badge result-D">D</span><span class="record-count" id="record-d">0</span></div>
-          <div class="record-item"><span class="result-badge result-L">L</span><span class="record-count" id="record-l">0</span></div>
-        </div>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-card-label">Matches played</div>
+        <div class="stat-card-value" id="stat-matches-played">0</div>
       </div>
-      <div class="stat-tile">
-        <div class="stat-tile-label">Clean sheets</div>
-        <div class="stat-tile-value" id="clean-sheets-value">0</div>
+      <div class="stat-card">
+        <div class="stat-card-label">Goals scored</div>
+        <div class="stat-card-value" id="stat-goals-scored">0</div>
       </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Clean sheets</div>
+        <div class="stat-card-value" id="stat-clean-sheets">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Win rate</div>
+        <div class="stat-card-value" id="stat-win-rate">0%</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Top scorers</h2>
+      <div id="top-scorers-list"></div>
+      <div id="top-scorers-empty" class="empty-state hidden">No goals recorded yet.</div>
+    </div>
+
+    <div class="panel">
+      <h2>Recent results</h2>
+      <div id="recent-results-list"></div>
+      <div id="recent-results-empty" class="empty-state hidden">No completed matches yet.</div>
     </div>
 
     <div class="panel">
@@ -446,7 +506,7 @@
 
     <div class="panel">
       <div class="panel-header">
-        <h2>Results</h2>
+        <h2>All results</h2>
         <div class="filters">
           <select id="filter-venue">
             <option value="">All Venues</option>

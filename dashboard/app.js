@@ -249,8 +249,9 @@ async function loadDashboard() {
     const reports = await reportsRes.json();
     reportMatchIds = new Set((Array.isArray(reports) ? reports : []).map((r) => r.match_id));
     renderStats(stats);
-    renderCleanSheets(allResults);
-    renderRecord(allResults);
+    renderStatCards(allResults);
+    renderTopScorers(stats);
+    renderRecentResults(allResults);
     renderGoalsChart(allResults);
     populateVenueFilter(allResults);
     applyResultsFilters();
@@ -279,25 +280,99 @@ function populateVenueFilter(results) {
   if (venues.includes(previous)) select.value = previous;
 }
 
-// Season total, deliberately not affected by the Results filters below —
-// same "whole-season headline stat" treatment as Player Stats.
-function renderCleanSheets(results) {
-  const count = results.filter((r) => r.their_score === 0).length;
-  document.getElementById("clean-sheets-value").textContent = count;
-}
-
-// Season record (W/D/L) — same whole-season, filter-independent
-// treatment as Clean sheets. Reuses the .result-badge letter styling
-// already established in the Results table rather than introducing a
-// new color per outcome.
-function renderRecord(results) {
+// Headline stat cards (matches played / goals scored / clean sheets /
+// win rate) — whole-season totals, deliberately not affected by the
+// Results filters further down (same "headline stat" treatment as
+// Player Stats always had).
+function renderStatCards(results) {
   const counts = { W: 0, D: 0, L: 0 };
   results.forEach((r) => {
     if (counts[r.result] !== undefined) counts[r.result]++;
   });
-  document.getElementById("record-w").textContent = counts.W;
-  document.getElementById("record-d").textContent = counts.D;
-  document.getElementById("record-l").textContent = counts.L;
+  const played = results.length;
+  const goalsScored = results.reduce((sum, r) => sum + (r.our_score || 0), 0);
+  const cleanSheets = results.filter((r) => r.their_score === 0).length;
+  const winRate = played ? Math.round((counts.W / played) * 100) : 0;
+
+  document.getElementById("stat-matches-played").textContent = played;
+  document.getElementById("stat-goals-scored").textContent = goalsScored;
+  document.getElementById("stat-clean-sheets").textContent = cleanSheets;
+  document.getElementById("stat-win-rate").textContent = `${winRate}%`;
+}
+
+// Top scorers — top 5 by goals, squad-number badge + name + a bar
+// proportional to the top scorer's count (so the leader's bar is
+// always full-width) + the count itself. player_season_stats already
+// comes back sorted goals desc (see schema.sql), so no re-sort needed
+// here beyond taking the top slice.
+function renderTopScorers(stats) {
+  const list = document.getElementById("top-scorers-list");
+  const empty = document.getElementById("top-scorers-empty");
+  list.innerHTML = "";
+  const scorers = stats.filter((r) => r.goals > 0).slice(0, 5);
+  if (!scorers.length) {
+    empty.classList.remove("hidden");
+    return;
+  }
+  empty.classList.add("hidden");
+  const maxGoals = scorers[0].goals;
+  scorers.forEach((r) => {
+    const row = document.createElement("div");
+    row.className = "scorer-row";
+    const pct = maxGoals ? Math.round((r.goals / maxGoals) * 100) : 0;
+    row.innerHTML = `
+      <span class="number-badge">${r.squad_number ?? "-"}</span>
+      <span class="scorer-name">${r.name}</span>
+      <span class="scorer-bar-track"><span class="scorer-bar-fill" style="width:${pct}%"></span></span>
+      <span class="scorer-count">${r.goals}</span>
+    `;
+    list.appendChild(row);
+  });
+}
+
+// Recent results — the 5 most recent completed matches, compact
+// opponent/result rows. results_log (allResults) already comes back
+// newest-first, so this is just the first slice - no filters, this is
+// a quick-glance summary above the full filterable "All results" table.
+function renderRecentResults(results) {
+  const list = document.getElementById("recent-results-list");
+  const empty = document.getElementById("recent-results-empty");
+  list.innerHTML = "";
+  const recent = results.slice(0, 5);
+  if (!recent.length) {
+    empty.classList.remove("hidden");
+    return;
+  }
+  empty.classList.add("hidden");
+  recent.forEach((r) => {
+    const row = document.createElement("div");
+    row.className = "recent-result-row";
+    const score = `${r.our_score}–${r.their_score}`;
+    const scoreEl = reportMatchIds.has(r.id)
+      ? `<button type="button" class="score-link" data-match-id="${r.id}">${score}</button>`
+      : `<span>${score}</span>`;
+    row.innerHTML = `
+      <span>vs ${r.opposition}</span>
+      <span class="recent-result-score">
+        <span class="result-badge result-${r.result}">${r.result}</span>
+        ${scoreEl}
+      </span>
+    `;
+    list.appendChild(row);
+  });
+  list.querySelectorAll(".score-link").forEach((btn) => {
+    btn.addEventListener("click", () => showReport(btn.dataset.matchId));
+  });
+}
+
+// English grassroots season runs roughly Aug-May, so a match played in
+// e.g. January "2026" is still the "2025/26 season" - flips over on
+// July 1st rather than at the calendar year boundary.
+function currentSeasonLabel() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const startYear = now.getMonth() >= 6 ? year : year - 1; // getMonth() is 0-based, 6 = July
+  return `${startYear}/${String((startYear + 1) % 100).padStart(2, "0")} season`;
 }
 
 // Goals-per-match bar chart — hand-rolled SVG (no charting library, in
@@ -553,6 +628,8 @@ function renderResults(rows, hasAnyData) {
     btn.addEventListener("click", () => showReport(btn.dataset.matchId));
   });
 }
+
+document.getElementById("season-label").textContent = currentSeasonLabel();
 
 // Boot: already-signed-in devices skip straight to the dashboard;
 // everyone else sees the login screen.

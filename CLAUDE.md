@@ -184,7 +184,12 @@ served from.
 
 - `players` — `name`, `squad_number`, `active`
 - `matches` — `opposition`, `match_date`, `venue`, `competition`,
-  `our_score`, `their_score`, `status`. `venue` is free text, not a
+  `our_score`, `their_score`, `status`, `notes` (free text, nullable —
+  end-of-match coach context separate from any per-event data, e.g.
+  "played a man short from the 20th minute"; fed into the report prompt
+  alongside the event log when present, in both `self-host/report-service`
+  and `generate_report.py`; recorder-side UI to actually capture it is
+  not built yet — see "Known gaps" #5 below). `venue` is free text, not a
   home/away enum — league and cup matches are always played at one of
   several shared centres (Rushall, Chasetown, Bilston, more added as
   they're confirmed over the season), never at a Wyrley "home" ground.
@@ -194,8 +199,18 @@ served from.
   no code change needed. `dashboard`'s Venue filter is built dynamically
   from whatever venue names are actually in the data
   (`populateVenueFilter()`), not a hard-coded list.
-- `events` — one row per goal / assist / save / goal_against / appearance,
-  linked to a match and (eventually) a player. `appearance` has no
+- `events` — one row per goal / assist / save / goal_against / appearance
+  / woodwork / half_time / full_time, linked to a match and (eventually)
+  a player. `woodwork` (hit the bar/post), `half_time`, and `full_time`
+  are match-timeline moments rather than player actions — `player_id`
+  was already nullable before these were added (never `NOT NULL`), so
+  no schema change was needed for them to be logged with no player
+  attached. `minute` already stores minutes-elapsed-into-the-match
+  (computed client-side by `currentMinute()` in `record/app.js`,
+  accounting for half-time/stoppage pauses), not device wall-clock time
+  — that was true before these event types existed too, not something
+  this addition changed. Recorder-side UI to actually log these three
+  new types isn't built yet — see "Known gaps" #5 below. `appearance` has no
   minute and isn't a real "moment" — one row per player checked in the
   recorder's "Who's Playing Today?" list, added purely so
   `player_season_stats.appearances` is correct for a player who plays
@@ -289,11 +304,31 @@ Working:
   the `reports` fetch) — clicking it switches to the Reports tab and
   scrolls/briefly highlights (`showReport()`) the matching card, id'd
   `report-${match_id}`.
-- Season Record (W/D/L) and Goals per Match chart: both whole-season and
-  filter-independent, same "headline stat" treatment as Clean sheets —
-  computed from `allResults`, not the filtered view. `renderRecord()`
-  reuses the existing `.result-badge` W/D/L letter styling rather than
-  introducing new colors. `renderGoalsChart()` is a hand-rolled SVG bar
+- Dashboard headline stats: a 2-column `.stat-grid` (matches played /
+  goals scored / clean sheets / win rate — `renderStatCards()`) replaced
+  the old separate "Season record" W/D/L tile + standalone Clean sheets
+  tile; win rate folds W/D/L into one number so the dedicated W/D/L tile
+  became redundant once it existed (per-match results are still visible
+  as badges in Recent results/All results below). Whole-season and
+  filter-independent, same "headline stat" treatment the old tiles had —
+  computed from `allResults`, not the filtered view. Below that: Top
+  scorers (`renderTopScorers()` — top 5 by goals, squad-number badge +
+  name + a bar proportional to the top scorer's count so the leader's
+  bar is always full-width, `player_season_stats` already comes back
+  goals-desc so no re-sort needed) and Recent results
+  (`renderRecentResults()` — the 5 most recent completed matches as
+  compact opponent/result rows, same score-link-to-report behavior as
+  the full table) sit above the existing Goals per Match chart / Player
+  Stats / "All results" (renamed from "Results" to read distinctly next
+  to the new Recent results) / Season Awards panels, which are otherwise
+  unchanged. Header simplified to a single-line title + right-aligned
+  season label (`currentSeasonLabel()` — flips over July 1st, not the
+  calendar year boundary, since a grassroots season runs roughly
+  Aug-May) alongside the existing Recorder/Sign out nav; wraps to two
+  rows via `flex-wrap` at narrow widths rather than squeezing the title
+  itself onto two lines (same fix as the recorder's brand-strip earlier).
+  Card radius standardized to 12px across `.panel`/`.stat-card`.
+  `renderGoalsChart()` is a hand-rolled SVG bar
   chart (no charting library, consistent with the rest of the app having
   no build step) — chronological left-to-right (`results_log` comes back
   newest-first, reversed for the chart), bars capped at 20 viewBox units
@@ -320,7 +355,17 @@ Working:
   Each goal's `goal_type` is included in the event log sent to the
   prompt (as "— penalty"/"— free kick", omitted for open play) so
   penalties/free kicks can show up as standout moments in the generated
-  text.
+  text. The prompt's event-log intro line now says explicitly "already
+  sorted chronologically by minute — keep them in this exact order" —
+  the events array was always built chronologically anyway (the client
+  pushes each event in real time as it happens during a live match,
+  never re-sorted), but an LLM asked to "mention standout moments" had
+  been observed re-ordering them for narrative flow regardless, so it's
+  told not to rather than just labelled "chronological" and hoped for.
+  `EVENT_TYPE_LABELS` now also covers `woodwork`/`half_time`/`full_time`
+  (both `self-host/report-service` and `generate_report.py`), and
+  `matches.notes` — when present — is appended to the prompt as a
+  labelled "Coach's notes" block after the event log.
 - Cross-app nav: the recorder's brand-strip has a "Dashboard" link
   (`../dashboard/`) and the dashboard's header has a "Recorder" link
   (`../record/`) — plain same-window `<a>` tags, deliberately not
@@ -423,6 +468,32 @@ Known gaps (in priority order for next work):
    goal/assist/save → undo → end match) but it was never committed — the
    `.gitignore`'s Node/jsdom entries are the only trace of it. If test
    coverage is wanted, it needs to be written from scratch.
+5. **`record/` has no UI yet for `woodwork`/`half_time`/`full_time`
+   events or `matches.notes`**, even though `schema.sql` and both report
+   prompt-builders already support all four (see "Data model" above and
+   the "Automatic match reports" bullet). What's needed in
+   `record/index.html`/`app.js`, following the existing action-button +
+   picker patterns:
+   - A "Woodwork" action button alongside Goal/Save/Goal (Them), logging
+     `{ type: "woodwork", minute: currentMinute() }` with no player
+     picker (or an optional one, coach's call).
+   - Buttons or a flow to explicitly log `half_time`/`full_time` events
+     — currently `togglePause()`/`btn-pause` only pauses the clock
+     locally and creates no event at all; End Match doesn't create a
+     `full_time` event either. Whether `half_time` should be `btn-pause`
+     itself gaining an event side-effect, or a separate action, needs a
+     product call, not just an engineering one.
+   - A `<textarea>` for `notes`, shown once `full_time` is logged (per
+     the original request that prompted all of this — see git history
+     around the schema/dashboard changes), and included in the
+     `matches` POST body in `syncMatch()`.
+   - `syncMatch()`'s `eventRows` construction needs `woodwork`/
+     `half_time`/`full_time` rows to carry the same key set as every
+     other row (`match_id`/`player_id`/`event_type`/`minute`/
+     `goal_type: null`) — PostgREST's bulk insert has bitten this exact
+     class of omission before (see the "All object keys must match" fix
+     above), so this isn't optional polish, it'll hard-fail sync if
+     missed.
 
 ## Conventions
 
