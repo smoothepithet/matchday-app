@@ -160,8 +160,13 @@ services:
       - -c
       - |
         while true; do
+          # pgbackups' matchday-latest.sql.gz files are symlinks to the
+          # newest dated dump in each folder - rclone skips symlinks by
+          # default (NOTICE: "Can't follow symlink"), which would leave
+          # Drive without a "just grab the latest one" copy. --copy-links
+          # makes it copy the real file the symlink points at instead.
           rclone sync /backups gdrive:matchday-app-backups \
-            --config /config/rclone/rclone.conf -v
+            --config /config/rclone/rclone.conf --copy-links -v
           sleep 86400
         done
 
