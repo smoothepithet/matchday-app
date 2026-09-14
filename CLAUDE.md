@@ -341,21 +341,32 @@ Working:
   the full table) sit above the existing Goals per Match chart / Player
   Stats / "All results" (renamed from "Results" to read distinctly next
   to the new Recent results) / Season Awards panels, which are otherwise
-  unchanged. Header simplified to a single-line title + right-aligned
-  season label (`currentSeasonLabel()` — flips over July 1st, not the
-  calendar year boundary, since a grassroots season runs roughly
-  Aug-May) alongside the existing Recorder/Sign out nav; wraps to two
-  rows via `flex-wrap` at narrow widths rather than squeezing the title
-  itself onto two lines (same fix as the recorder's brand-strip earlier).
-  Card radius standardized to 12px across `.panel`/`.stat-card`.
+  unchanged. Header is a centered column (`.header-brand` — rocket +
+  "Wyrley Rockets Dashboard" — stacked above `.header-nav` — season
+  label + Recorder/Sign out), both rows individually centered/wrapped
+  via flexbox so nothing squeezes onto two lines at narrow widths.
+  `currentSeasonLabel()` flips over July 1st, not the calendar year
+  boundary, since a grassroots season runs roughly Aug-May. Card radius
+  standardized to 12px across `.panel`/`.stat-card`.
   `renderGoalsChart()` is a hand-rolled SVG bar
   chart (no charting library, consistent with the rest of the app having
   no build step) — chronological left-to-right (`results_log` comes back
   newest-first, reversed for the chart), bars capped at 20 viewBox units
   thick and shrinking to fit when there are many matches, gridlines/axis
   labels rounded to nice steps, a `<title>` per bar for native hover
-  tooltips, and x-axis date labels thinned to ~8 evenly spaced ticks so
-  they never overlap regardless of season length.
+  tooltips. Bars sit a fixed `gap` apart always (`groupWidth`/
+  `groupStart` center the resulting bar group within the chart rather
+  than stretching leftover width into the gaps) — with few matches, the
+  old stretch-to-fill approach spread bars apart edge-to-edge, which
+  read as if they were far apart in time; this was especially confusing
+  for two same-date matches (the team plays two a week) rendering at
+  opposite ends of the chart. X-axis date labels are thinned by pixel
+  distance from the last drawn label (`minLabelSpacing`, 28px) rather
+  than a fixed index step — a step assumed roughly-even spacing across
+  the full width, true for a full season but not for a small/clustered
+  set, where it let two identical "13/09" labels collide into one
+  unreadable blob once their bars sat right next to each other
+  post-centering.
 - Automatic match reports: pressing "End Match" POSTs the match's events
   to `self-host/report-service` (stdlib-only, no deps), which prompts an
   **Ollama Cloud** model (`OLLAMA_MODEL`, default `gpt-oss:120b` — no

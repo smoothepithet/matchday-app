@@ -406,9 +406,17 @@ function renderGoalsChart(results) {
   const axisMax = Math.ceil(maxGoals / step) * step;
 
   const n = chronological.length;
+  // Fixed gap always (never stretched to fill the chart) - with only a
+  // handful of matches, spreading the leftover width evenly between bars
+  // used to push them apart edge-to-edge, which read as if those matches
+  // were far apart in time (or even confusingly, at opposite ends, for
+  // two matches on the very same date - the team plays two a week).
+  // Bars stay a fixed distance apart regardless of how few there are;
+  // the group is just centered in the remaining space instead.
   const gap = 4;
   const barWidth = Math.max(2, Math.min(20, (innerWidth - gap * (n - 1)) / n));
-  const actualGap = n > 1 ? (innerWidth - barWidth * n) / (n - 1) : 0;
+  const groupWidth = barWidth * n + gap * (n - 1);
+  const groupStart = marginLeft + Math.max(0, (innerWidth - groupWidth) / 2);
 
   const svgNS = "http://www.w3.org/2000/svg";
   const el = (tag, attrs) => {
@@ -426,12 +434,20 @@ function renderGoalsChart(results) {
     svg.appendChild(label);
   }
 
-  // At most ~8 x-axis date labels, evenly spaced, so they never overlap
-  // regardless of how many matches are in the season.
-  const labelEvery = Math.max(1, Math.ceil(n / 8));
+  // x-axis date labels: skip any label that would land too close to the
+  // last one actually drawn, rather than thinning by a fixed index step.
+  // An index-based step (every Nth match) assumed matches were spread
+  // roughly evenly across the width - true for a full season, but not
+  // for a small/clustered set (e.g. two same-date matches now sitting
+  // right next to each other post-centering, see groupStart above),
+  // where a step of 1 let both "13/09" labels collide into one
+  // unreadable blob. Distance-based thinning handles both cases with
+  // one rule.
+  const minLabelSpacing = 28; // px - roughly a "DD/MM" label's width at this font size
+  let lastLabelX = -Infinity;
 
   chronological.forEach((r, i) => {
-    const x = marginLeft + i * (barWidth + actualGap);
+    const x = groupStart + i * (barWidth + gap);
     const barHeight = Math.max(0, (r.our_score / axisMax) * innerHeight);
     const y = marginTop + innerHeight - barHeight;
     const rect = el("rect", { x, y, width: barWidth, height: barHeight, rx: 2, class: "chart-bar" });
@@ -440,15 +456,17 @@ function renderGoalsChart(results) {
     rect.appendChild(title);
     svg.appendChild(rect);
 
-    if (i % labelEvery === 0) {
+    const labelX = x + barWidth / 2;
+    if (labelX - lastLabelX >= minLabelSpacing) {
       const label = el("text", {
-        x: x + barWidth / 2,
+        x: labelX,
         y: height - marginBottom + 14,
         class: "chart-axis-text",
         "text-anchor": "middle",
       });
       label.textContent = shortDate(r.match_date);
       svg.appendChild(label);
+      lastLabelX = labelX;
     }
   });
 }

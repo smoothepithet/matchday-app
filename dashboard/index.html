@@ -34,9 +34,13 @@
     padding: 20px;
     border-bottom: 1px solid var(--steel);
     display: flex;
+    flex-direction: column;
     align-items: center;
-    flex-wrap: wrap;
-    row-gap: 8px;
+    gap: 8px;
+  }
+  .header-brand {
+    display: flex;
+    align-items: center;
     gap: 12px;
   }
   header .rocket { font-size: 24px; transform: rotate(45deg); }
@@ -403,11 +407,11 @@
     font-weight: 600;
   }
   .header-nav {
-    margin-left: auto;
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 16px;
-    flex-shrink: 0;
   }
   .recorder-link,
   .logout-link {
@@ -422,8 +426,10 @@
 </head>
 <body>
 <header>
-  <span class="rocket">🚀</span>
-  <h1>Wyrley Rockets</h1>
+  <div class="header-brand">
+    <span class="rocket">🚀</span>
+    <h1>Wyrley Rockets Dashboard</h1>
+  </div>
   <div class="header-nav">
     <span class="season" id="season-label"></span>
     <!-- Same-origin, no target="_blank" — as an installed PWA the recorder
