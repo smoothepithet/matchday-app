@@ -83,10 +83,19 @@ EVENT_TYPE_LABELS = {
     "assist": "assist",
     "save": "save",
     "goal_against": "goal conceded (opposition scored)",
+    "woodwork": "hit the woodwork (bar/post)",
+    "half_time": "half-time",
+    "full_time": "full-time",
 }
 
 
 def build_prompt(match: dict) -> str:
+    # The caller (record/app.js) builds this array in real time as events
+    # happen during the live match, so it's already chronological by
+    # construction - never re-sorted here. Told to the model explicitly
+    # anyway (rather than just labelled "chronological" and hoped for)
+    # since an LLM asked to "mention standout moments" has otherwise been
+    # observed re-ordering them for narrative flow.
     events = match.get("events") or []
     lines = []
     for e in events:
@@ -106,6 +115,9 @@ def build_prompt(match: dict) -> str:
         lines.append(line)
     events_text = "\n".join(lines)
 
+    notes = (match.get("notes") or "").strip()
+    notes_block = f"\n\nCoach's notes (additional context for this match):\n{notes}" if notes else ""
+
     return f"""You are writing a short, upbeat match report for {TEAM_NAME}, a kids'
 grassroots football team, for their social media (Instagram/Facebook caption
 length — under 120 words).
@@ -117,8 +129,9 @@ Match facts:
 - Competition: {match.get('competition') or 'Friendly'}
 - Final score ({TEAM_NAME} – Opposition): {match.get('our_score', 0)} – {match.get('their_score', 0)}
 
-Event log (chronological):
-{events_text or 'No individual events recorded.'}
+Event log (already sorted chronologically by minute — keep them in this
+exact order, do not re-sort or re-group them for narrative effect):
+{events_text or 'No individual events recorded.'}{notes_block}
 
 Write in a warm, encouraging tone appropriate for kids' grassroots football —
 celebrate effort and teamwork, not just the scoreline. Mention standout

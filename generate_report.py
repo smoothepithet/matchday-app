@@ -61,10 +61,16 @@ EVENT_TYPE_LABELS = {
     "assist": "assist",
     "save": "save",
     "goal_against": "goal conceded (opposition scored)",
+    "woodwork": "hit the woodwork (bar/post)",
+    "half_time": "half-time",
+    "full_time": "full-time",
 }
 
 
 def build_prompt(match: dict) -> str:
+    # fetch_match() above already queries with order=minute.asc, so this
+    # is already chronological - never re-sorted here. Told to the model
+    # explicitly too (see server.py's build_prompt for why).
     lines = []
     for e in match["events"]:
         label = EVENT_TYPE_LABELS.get(e["event_type"], e["event_type"])
@@ -78,6 +84,9 @@ def build_prompt(match: dict) -> str:
         lines.append(line)
     events_text = "\n".join(lines)
 
+    notes = (match.get("notes") or "").strip()
+    notes_block = f"\n\nCoach's notes (additional context for this match):\n{notes}" if notes else ""
+
     return f"""You are writing a short, upbeat match report for {TEAM_NAME}, a kids'
 grassroots football team, for their social media (Instagram/Facebook caption
 length — under 120 words).
@@ -89,8 +98,9 @@ Match facts:
 - Competition: {match.get('competition') or 'Friendly'}
 - Final score ({TEAM_NAME} – Opposition): {match['our_score']} – {match['their_score']}
 
-Event log (chronological):
-{events_text or 'No individual events recorded.'}
+Event log (already sorted chronologically by minute — keep them in this
+exact order, do not re-sort or re-group them for narrative effect):
+{events_text or 'No individual events recorded.'}{notes_block}
 
 Write in a warm, encouraging tone appropriate for kids' grassroots football —
 celebrate effort and teamwork, not just the scoreline. Mention standout

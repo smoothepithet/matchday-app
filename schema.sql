@@ -35,6 +35,14 @@ create table if not exists matches (
 -- run repeatedly.
 alter table matches drop constraint if exists matches_venue_check;
 
+-- Free-text end-of-match context from the coach (separate from any
+-- per-event data) - e.g. "played a man short from the 20th minute",
+-- "pitch was waterlogged in the second half". Fed into the report
+-- prompt alongside the event log so the generated report can reflect
+-- context that never shows up as a discrete event. Nullable: most
+-- matches won't have anything extra to add.
+alter table matches add column if not exists notes text;
+
 -- One row per notable moment: goal, assist, save, appearance, and
 -- optionally cards / substitutions later if you want to extend it.
 -- goal_against means "the opposition's score went up" (the recorder's
@@ -54,13 +62,22 @@ alter table matches drop constraint if exists matches_venue_check;
 -- player who plays the whole match without ever scoring, assisting, or
 -- saving (previously the only way a player got counted as appearing at
 -- all was by having some other event attached to them).
+-- 'woodwork' (hit the bar/post), 'half_time', and 'full_time' are
+-- match-timeline moments rather than player actions - player_id is
+-- already nullable above (was never NOT NULL), which is what lets
+-- half_time/full_time be logged with no player attached.
 create table if not exists events (
   id uuid primary key default gen_random_uuid(),
   match_id uuid not null references matches(id) on delete cascade,
   player_id uuid references players(id) on delete set null,
   event_type text not null
-    check (event_type in ('goal', 'assist', 'save', 'goal_against', 'appearance')),
-  minute int,                       -- optional, nice for the report
+    check (event_type in ('goal', 'assist', 'save', 'goal_against', 'appearance', 'woodwork', 'half_time', 'full_time')),
+  -- Minutes elapsed into the match (accounting for half-time/stoppage
+  -- pauses), not device wall-clock time - computed client-side by
+  -- currentMinute() in record/app.js, so clock drift between devices
+  -- never affects what gets stored. Nullable for 'appearance' rows,
+  -- which aren't tied to a moment at all.
+  minute int,
   created_at timestamptz not null default now()
 );
 
@@ -74,7 +91,7 @@ create table if not exists events (
 update events set event_type = 'goal_against' where event_type = 'own_goal';
 alter table events drop constraint if exists events_event_type_check;
 alter table events add constraint events_event_type_check
-  check (event_type in ('goal', 'assist', 'save', 'goal_against', 'appearance'));
+  check (event_type in ('goal', 'assist', 'save', 'goal_against', 'appearance', 'woodwork', 'half_time', 'full_time'));
 
 -- Only meaningful for event_type = 'goal' (null otherwise). Uses ALTER
 -- rather than being folded into the CREATE TABLE above so re-running
