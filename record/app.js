@@ -477,6 +477,14 @@ function togglePause() {
     document.getElementById("match-clock").textContent = "HALF TIME";
     pauseBtn.innerHTML = `${ICONS.play} Start 2nd Half`;
     scoringBtns.forEach((b) => (b.disabled = true));
+    // This button pauses for any stoppage (injuries etc.), not just the
+    // real half-time break, so logging a half_time event unconditionally
+    // here would mislabel an injury stop as half-time in the report.
+    // Ask, rather than guess.
+    if (confirm("Is this half-time?")) {
+      match.events.push({ id: crypto.randomUUID(), type: "half_time", player: null, minute: currentMinute() });
+      renderLog();
+    }
   }
 }
 
@@ -521,6 +529,9 @@ function describeEvent(e) {
   }
   if (e.type === "goal_them") return "Goal conceded";
   if (e.type === "save") return `Save — ${e.player || "Unknown keeper"}`;
+  if (e.type === "woodwork") return e.player ? `Woodwork — ${e.player}` : "Woodwork";
+  if (e.type === "half_time") return "Half-time";
+  if (e.type === "full_time") return "Full-time";
   return e.type;
 }
 
@@ -795,6 +806,17 @@ function initApp() {
     renderLog();
   });
 
+  document.getElementById("btn-woodwork").addEventListener("click", () => {
+    openPicker(
+      "Who hit the woodwork?",
+      (player) => {
+        match.events.push({ id: crypto.randomUUID(), type: "woodwork", player, minute: currentMinute() });
+        renderLog();
+      },
+      playingSquad()
+    );
+  });
+
   document.getElementById("btn-goal-them").addEventListener("click", () => {
     match.their_score += 1;
     match.events.push({ id: crypto.randomUUID(), type: "goal_them", player: null, minute: currentMinute() });
@@ -802,10 +824,24 @@ function initApp() {
     renderLog();
   });
 
-  document.getElementById("btn-end-match").addEventListener("click", async () => {
+  document.getElementById("btn-end-match").addEventListener("click", () => {
     if (!confirm("End the match? This locks in the final score.")) return;
     clearInterval(clockInterval);
     match.status = "completed";
+    match.events.push({ id: crypto.randomUUID(), type: "full_time", player: null, minute: currentMinute() });
+    renderLog();
+
+    // One more prompt before it's actually locked in — notes are
+    // end-of-match context (separate from the per-event log), asked
+    // for now while it's fresh rather than making the coach remember
+    // to come back and add it later.
+    document.getElementById("notes-textarea").value = "";
+    document.getElementById("notes-backdrop").classList.remove("hidden");
+  });
+
+  document.getElementById("notes-finish-btn").addEventListener("click", async () => {
+    match.notes = document.getElementById("notes-textarea").value.trim() || null;
+    document.getElementById("notes-backdrop").classList.add("hidden");
 
     const archive = store.get("matches_archive", []);
     archive.push(match);
@@ -954,6 +990,7 @@ async function syncMatch(m) {
         our_score: m.our_score,
         their_score: m.their_score,
         status: "completed",
+        notes: m.notes || null,
       }),
     });
     const [savedMatch] = await matchRes.json();
@@ -1077,6 +1114,7 @@ async function generateAndSaveReport(matchId, m) {
         competition: m.competition,
         our_score: m.our_score,
         their_score: m.their_score,
+        notes: m.notes || null,
         events,
       }),
     });

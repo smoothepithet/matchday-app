@@ -252,7 +252,7 @@ input:focus-visible, select:focus-visible, button:focus-visible {
 .actions {
   padding: 20px 16px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 14px;
 }
 
@@ -279,7 +279,7 @@ input:focus-visible, select:focus-visible, button:focus-visible {
 .action-btn.goal-us {
   background: var(--red);
   color: var(--white);
-  grid-column: span 2;
+  grid-column: span 3;
   box-shadow: 0 6px 18px rgba(215, 25, 32, 0.35);
 }
 
@@ -287,7 +287,19 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   box-shadow: none;
 }
 
-.action-btn.save {
+/* --- Save / Woodwork / Goal (Them): the compact 3-up row. Smaller
+   type + tighter padding than the full-width buttons, since three
+   buttons in a row leaves less horizontal space per label than the
+   old 2-up layout had ("Goal (Them)" in particular needs the room). --- */
+.action-btn.save,
+.action-btn.woodwork,
+.action-btn.goal-them {
+  padding: 22px 6px;
+  font-size: 14px;
+}
+
+.action-btn.save,
+.action-btn.woodwork {
   background: var(--steel);
   color: var(--white);
   border: 1px solid var(--steel-light);
@@ -303,14 +315,14 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   background: var(--steel);
   color: var(--white);
   border: 1px solid var(--steel-light);
-  grid-column: span 2;
+  grid-column: span 3;
 }
 
 .action-btn.end-match {
   background: transparent;
   color: var(--silver);
   border: 1px solid var(--silver);
-  grid-column: span 2;
+  grid-column: span 3;
   font-weight: 700;
 }
 
@@ -453,6 +465,18 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   color: var(--white);
   font-weight: 700;
   cursor: pointer;
+}
+
+.notes-textarea {
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: var(--white);
+  color: var(--void);
+  font: inherit;
+  font-size: 16px;
+  resize: vertical;
 }
 
 /* --- Setup screen --- */

@@ -188,8 +188,8 @@ served from.
   end-of-match coach context separate from any per-event data, e.g.
   "played a man short from the 20th minute"; fed into the report prompt
   alongside the event log when present, in both `self-host/report-service`
-  and `generate_report.py`; recorder-side UI to actually capture it is
-  not built yet — see "Known gaps" #5 below). `venue` is free text, not a
+  and `generate_report.py`; captured via the recorder's end-of-match
+  notes sheet, see "Current status" below). `venue` is free text, not a
   home/away enum — league and cup matches are always played at one of
   several shared centres (Rushall, Chasetown, Bilston, more added as
   they're confirmed over the season), never at a Wyrley "home" ground.
@@ -209,8 +209,8 @@ served from.
   (computed client-side by `currentMinute()` in `record/app.js`,
   accounting for half-time/stoppage pauses), not device wall-clock time
   — that was true before these event types existed too, not something
-  this addition changed. Recorder-side UI to actually log these three
-  new types isn't built yet — see "Known gaps" #5 below. `appearance` has no
+  this addition changed. See "Current status" below for how the recorder
+  actually logs these three. `appearance` has no
   minute and isn't a real "moment" — one row per player checked in the
   recorder's "Who's Playing Today?" list, added purely so
   `player_season_stats.appearances` is correct for a player who plays
@@ -282,9 +282,29 @@ Working:
   skipped entirely for penalties), undo,
   half-time/stoppage pause (`togglePause()` — pauses the clock, disables
   the scoring buttons, tracks `match.totalPausedMs` so resuming doesn't
-  count real-world break time as match time), offline queue
+  count real-world break time as match time), Woodwork capture (own
+  action button, opens the same picker as Goal/Assist restricted to
+  `playingSquad()` — attributable to a player since it's our own shot,
+  unlike Goal (Them) which has no player concept at all), offline queue
   (`localStorage` key `sync_queue`), best-effort sync to Supabase REST
   API on match end and on `online` event. Deployed to GitHub Pages.
+- `half_time`/`full_time` events and `matches.notes`: `togglePause()`'s
+  pausing branch (not resuming) asks `confirm("Is this half-time?")`
+  before logging a `half_time` event — deliberately a confirm, not
+  unconditional, since that same button already doubles as a generic
+  stoppage pause (injuries etc., see its own comment in `app.js`) and
+  logging every stoppage as "half-time" would mislabel the timeline fed
+  into the report. `full_time` is logged unconditionally in the End
+  Match handler (there's no equivalent ambiguity — ending the match only
+  ever means full-time), which then opens a bottom sheet
+  (`#notes-backdrop`, styled like the existing player-picker sheet) for
+  optional end-of-match `notes` before the actual archive/sync/report
+  flow runs — moved to run *after* the sheet closes so the locally
+  archived copy (`matches_archive`) includes the notes text rather than
+  a stale pre-notes snapshot. `eventRows` in `syncMatch()` needed no
+  changes for any of the three new event types — `player_id` resolution
+  already returns `null` for a `null` name and `event_type`/`goal_type`
+  were already generic pass-throughs, so this was purely additive.
 - Awards screen (reachable from setup, alongside Manage Squad): records
   Training/Manager's/Parents' Player of the Week and Player of the
   Month, reusing the same player-picker sheet as match events and
@@ -468,32 +488,6 @@ Known gaps (in priority order for next work):
    goal/assist/save → undo → end match) but it was never committed — the
    `.gitignore`'s Node/jsdom entries are the only trace of it. If test
    coverage is wanted, it needs to be written from scratch.
-5. **`record/` has no UI yet for `woodwork`/`half_time`/`full_time`
-   events or `matches.notes`**, even though `schema.sql` and both report
-   prompt-builders already support all four (see "Data model" above and
-   the "Automatic match reports" bullet). What's needed in
-   `record/index.html`/`app.js`, following the existing action-button +
-   picker patterns:
-   - A "Woodwork" action button alongside Goal/Save/Goal (Them), logging
-     `{ type: "woodwork", minute: currentMinute() }` with no player
-     picker (or an optional one, coach's call).
-   - Buttons or a flow to explicitly log `half_time`/`full_time` events
-     — currently `togglePause()`/`btn-pause` only pauses the clock
-     locally and creates no event at all; End Match doesn't create a
-     `full_time` event either. Whether `half_time` should be `btn-pause`
-     itself gaining an event side-effect, or a separate action, needs a
-     product call, not just an engineering one.
-   - A `<textarea>` for `notes`, shown once `full_time` is logged (per
-     the original request that prompted all of this — see git history
-     around the schema/dashboard changes), and included in the
-     `matches` POST body in `syncMatch()`.
-   - `syncMatch()`'s `eventRows` construction needs `woodwork`/
-     `half_time`/`full_time` rows to carry the same key set as every
-     other row (`match_id`/`player_id`/`event_type`/`minute`/
-     `goal_type: null`) — PostgREST's bulk insert has bitten this exact
-     class of omission before (see the "All object keys must match" fix
-     above), so this isn't optional polish, it'll hard-fail sync if
-     missed.
 
 ## Conventions
 
