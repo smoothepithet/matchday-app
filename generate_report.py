@@ -17,10 +17,13 @@ import sys
 import json
 import requests
 from anthropic import Anthropic
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
 TEAM_NAME = "Wyrley Rockets"
+UK_TZ = ZoneInfo("Europe/London")
 
 
 def fetch_match(match_id: str) -> dict:
@@ -67,6 +70,21 @@ EVENT_TYPE_LABELS = {
 }
 
 
+def format_kickoff(kickoff_at):
+    """See server.py's format_kickoff - same logic, kept in sync. Portable
+    day/hour formatting rather than strftime's "%-d"/"%-I" (a glibc
+    extension not guaranteed to work under every libc)."""
+    if not kickoff_at:
+        return None
+    try:
+        dt = datetime.fromisoformat(kickoff_at.replace("Z", "+00:00")).astimezone(UK_TZ)
+    except ValueError:
+        return None
+    hour12 = dt.hour % 12 or 12
+    ampm = "am" if dt.hour < 12 else "pm"
+    return f"{dt.strftime('%A')} {dt.day} {dt.strftime('%B')}, {hour12}:{dt.minute:02d}{ampm}"
+
+
 def build_prompt(match: dict) -> str:
     # fetch_match() above already queries with order=minute.asc, so this
     # is already chronological - never re-sorted here. Told to the model
@@ -87,6 +105,9 @@ def build_prompt(match: dict) -> str:
     notes = (match.get("notes") or "").strip()
     notes_block = f"\n\nCoach's notes (additional context for this match):\n{notes}" if notes else ""
 
+    kickoff = format_kickoff(match.get("kickoff_at"))
+    kickoff_line = f"\n- Kick-off: {kickoff}" if kickoff else ""
+
     return f"""You are writing a short, upbeat match report for {TEAM_NAME}, a kids'
 grassroots football team, for their social media (Instagram/Facebook caption
 length — under 120 words).
@@ -96,7 +117,7 @@ Match facts:
 - Opposition: {match['opposition']}
 - Venue: {match['venue']}
 - Competition: {match.get('competition') or 'Friendly'}
-- Final score ({TEAM_NAME} – Opposition): {match['our_score']} – {match['their_score']}
+- Final score ({TEAM_NAME} – Opposition): {match['our_score']} – {match['their_score']}{kickoff_line}
 
 Event log (already sorted chronologically by minute — keep them in this
 exact order, do not re-sort or re-group them for narrative effect):
@@ -108,7 +129,11 @@ moments from the event log where relevant. End with 2-3 relevant hashtags.
 Do not invent names, stats, or explanations that aren't in the data
 provided — if a goal is marked "scorer not recorded", just count it
 towards the team's total without guessing who scored it or how (never
-describe it as an own goal, a gift, or anything else not stated above)."""
+describe it as an own goal, a gift, or anything else not stated above).
+Do not invent atmospheric or scene-setting details that aren't given above
+either — time of day, weather, lighting (e.g. "under the floodlights" for
+a match with no stated kick-off time), pitch conditions, crowd size, and
+so on. If kick-off time isn't listed above, don't guess or imply one."""
 
 
 def generate_report(match_id: str) -> str:

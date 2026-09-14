@@ -37,7 +37,9 @@ import os
 import time
 import urllib.error
 import urllib.request
+from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from zoneinfo import ZoneInfo
 
 JWT_SECRET = os.environ["JWT_SECRET"]
 OLLAMA_API_KEY = os.environ["OLLAMA_API_KEY"]
@@ -89,6 +91,30 @@ EVENT_TYPE_LABELS = {
 }
 
 
+UK_TZ = ZoneInfo("Europe/London")
+
+
+def format_kickoff(kickoff_at: str | None) -> str | None:
+    """kickoff_at is the ISO UTC timestamp record/app.js captured when Kick
+    Off was pressed (match.startedAt) - converts it to a human-readable UK
+    local time/date. Returns None for a missing/malformed value (matches
+    synced before this field existed) rather than raising, since a report
+    should still generate fine without it."""
+    if not kickoff_at:
+        return None
+    try:
+        dt = datetime.fromisoformat(kickoff_at.replace("Z", "+00:00")).astimezone(UK_TZ)
+    except ValueError:
+        return None
+    # No-padding day/hour built manually rather than via strftime's
+    # "%-d"/"%-I" - that's a glibc extension, not guaranteed to work the
+    # same way (or at all) under Alpine's musl libc, which this actually
+    # runs under. %A/%B are plain strftime and portable everywhere.
+    hour12 = dt.hour % 12 or 12
+    ampm = "am" if dt.hour < 12 else "pm"
+    return f"{dt.strftime('%A')} {dt.day} {dt.strftime('%B')}, {hour12}:{dt.minute:02d}{ampm}"
+
+
 def build_prompt(match: dict) -> str:
     # The caller (record/app.js) builds this array in real time as events
     # happen during the live match, so it's already chronological by
@@ -118,6 +144,9 @@ def build_prompt(match: dict) -> str:
     notes = (match.get("notes") or "").strip()
     notes_block = f"\n\nCoach's notes (additional context for this match):\n{notes}" if notes else ""
 
+    kickoff = format_kickoff(match.get("kickoff_at"))
+    kickoff_line = f"\n- Kick-off: {kickoff}" if kickoff else ""
+
     return f"""You are writing a short, upbeat match report for {TEAM_NAME}, a kids'
 grassroots football team, for their social media (Instagram/Facebook caption
 length — under 120 words).
@@ -127,7 +156,7 @@ Match facts:
 - Opposition: {match.get('opposition', 'the opposition')}
 - Venue: {match.get('venue', '')}
 - Competition: {match.get('competition') or 'Friendly'}
-- Final score ({TEAM_NAME} – Opposition): {match.get('our_score', 0)} – {match.get('their_score', 0)}
+- Final score ({TEAM_NAME} – Opposition): {match.get('our_score', 0)} – {match.get('their_score', 0)}{kickoff_line}
 
 Event log (already sorted chronologically by minute — keep them in this
 exact order, do not re-sort or re-group them for narrative effect):
@@ -139,7 +168,11 @@ moments from the event log where relevant, by name. End with 2-3 relevant
 hashtags. Do not invent names, stats, or explanations that aren't in the
 data provided — if a goal is marked "scorer not recorded", just count it
 towards the team's total without guessing who scored it or how (never
-describe it as an own goal, a gift, or anything else not stated above)."""
+describe it as an own goal, a gift, or anything else not stated above).
+Do not invent atmospheric or scene-setting details that aren't given above
+either — time of day, weather, lighting (e.g. "under the floodlights" for
+a match with no stated kick-off time), pitch conditions, crowd size, and
+so on. If kick-off time isn't listed above, don't guess or imply one."""
 
 
 def call_ollama(prompt: str) -> str:

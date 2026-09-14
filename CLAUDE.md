@@ -189,7 +189,20 @@ served from.
   "played a man short from the 20th minute"; fed into the report prompt
   alongside the event log when present, in both `self-host/report-service`
   and `generate_report.py`; captured via the recorder's end-of-match
-  notes sheet, see "Current status" below). `venue` is free text, not a
+  notes sheet, see "Current status" below), `kickoff_at` (timestamptz,
+  nullable — the real-world instant Kick Off was pressed, i.e.
+  `match.startedAt` in `record/app.js`, finally persisted; `match_date`
+  itself is a plain `date` with no time-of-day at all, and before this
+  the report prompt was never told the time of day either way — with
+  nothing to ground a real kick-off time on, the model once invented one
+  outright, reporting a lunchtime match as played "under the floodlights"
+  at night. Both prompt builders convert it to UK local time
+  (`format_kickoff()`, `zoneinfo.ZoneInfo("Europe/London")`) for a
+  "Kick-off: Saturday 13 September, 1:15pm" line, and their closing
+  instructions now explicitly forbid inventing *any* atmospheric/
+  scene-setting detail not stated in the prompt — time of day, weather,
+  lighting, pitch conditions, crowd size — not just the scorer-specific
+  cases already covered). `venue` is free text, not a
   home/away enum — league and cup matches are always played at one of
   several shared centres (Rushall, Chasetown, Bilston, more added as
   they're confirmed over the season), never at a Wyrley "home" ground.
@@ -396,7 +409,21 @@ Working:
   `EVENT_TYPE_LABELS` now also covers `woodwork`/`half_time`/`full_time`
   (both `self-host/report-service` and `generate_report.py`), and
   `matches.notes` — when present — is appended to the prompt as a
-  labelled "Coach's notes" block after the event log.
+  labelled "Coach's notes" block after the event log. `kickoff_at`
+  (`record/app.js` sends `new Date(match.startedAt).toISOString()` in
+  both the `matches` POST and the `/report/generate` POST) gets a
+  "Kick-off: ..." line via `format_kickoff()` — see "Data model" above.
+  `report-service`'s docker-compose `command:` now runs `apk add
+  --no-cache tzdata` before starting the server, since plain Alpine
+  ships no IANA tz database and `zoneinfo.ZoneInfo("Europe/London")`
+  would otherwise raise `ZoneInfoNotFoundError` on every report — this
+  is a real config change (not just the bind-mounted `server.py`
+  content), so unlike the report-service prompt-only fix earlier, plain
+  `docker compose up -d` *does* recreate the container for this one; no
+  extra explicit restart needed. `format_kickoff()` deliberately avoids
+  strftime's `"%-d"`/`"%-I"` no-padding flags (a glibc extension) in
+  favor of manual day/hour formatting, since Alpine's musl libc isn't
+  guaranteed to support them the same way.
 - Cross-app nav: the recorder's brand-strip has a "Dashboard" link
   (`../dashboard/`) and the dashboard's header has a "Recorder" link
   (`../record/`) — plain same-window `<a>` tags, deliberately not

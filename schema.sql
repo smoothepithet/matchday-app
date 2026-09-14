@@ -43,6 +43,16 @@ alter table matches drop constraint if exists matches_venue_check;
 -- matches won't have anything extra to add.
 alter table matches add column if not exists notes text;
 
+-- The actual real-world instant Kick Off was pressed (record/app.js
+-- already captures this client-side as match.startedAt, just never
+-- used to persist anything before now) - match_date is a plain date
+-- with no time-of-day at all, and the report prompt was never told the
+-- time of day either way, so the model had nothing to ground a "kicked
+-- off at lunchtime" fact on and simply invented one ("a night match")
+-- instead. Nullable: matches synced before this column existed have no
+-- value to backfill.
+alter table matches add column if not exists kickoff_at timestamptz;
+
 -- One row per notable moment: goal, assist, save, appearance, and
 -- optionally cards / substitutions later if you want to extend it.
 -- goal_against means "the opposition's score went up" (the recorder's

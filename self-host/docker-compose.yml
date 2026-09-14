@@ -89,7 +89,12 @@ services:
   report-service:
     image: python:3.12-alpine
     restart: unless-stopped
-    command: python /app/server.py
+    # Plain Alpine ships no IANA tz database, so server.py's
+    # zoneinfo.ZoneInfo("Europe/London") (used to convert kickoff_at to
+    # local time for the report prompt) would raise ZoneInfoNotFoundError
+    # without this - apk install rather than switching to a custom image,
+    # to keep this service a stdlib-only script with no build step.
+    command: sh -c "apk add --no-cache tzdata && python /app/server.py"
     volumes:
       - ./report-service/server.py:/app/server.py:ro
     environment:

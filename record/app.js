@@ -991,6 +991,7 @@ async function syncMatch(m) {
         their_score: m.their_score,
         status: "completed",
         notes: m.notes || null,
+        kickoff_at: m.startedAt ? new Date(m.startedAt).toISOString() : null,
       }),
     });
     const [savedMatch] = await matchRes.json();
@@ -1115,6 +1116,7 @@ async function generateAndSaveReport(matchId, m) {
         our_score: m.our_score,
         their_score: m.their_score,
         notes: m.notes || null,
+        kickoff_at: m.startedAt ? new Date(m.startedAt).toISOString() : null,
         events,
       }),
     });
