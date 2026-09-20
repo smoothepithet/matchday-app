@@ -542,7 +542,25 @@ Working:
   does — worth knowing if that older script ever gets reached for
   again, since the anon-key approach doesn't actually work against
   this project's RLS (which requires a real signed-in user), so as
-  written it would fail against the live backend.
+  written it would fail against the live backend. Its events query
+  excludes `event_type=neq.appearance` (same fix applied to
+  `generate_report.py`'s `fetch_match()` for consistency) — appearance
+  rows are pure stats bookkeeping (one per squad member checked as
+  playing, no minute) that the live flow never sends to the prompt
+  either, since it builds the report from the recorder's in-memory
+  `match.events`, which never contains them in the first place (they're
+  synthesized separately, straight into the DB insert, only at sync
+  time). Fetching raw from the `events` table needs that exclusion
+  explicit, or the model gets handed a "Minute None: appearance
+  (`<name>`)" line for every single player on the squad, which is
+  exactly what happened the first time this script ran — and, it turned
+  out, was enough irrelevant noise in the prompt to derail the whole
+  report into a flat mechanical restatement of the event log rather
+  than an actual narrative. Also does a `DELETE .../reports?match_id=eq...`
+  before the insert — `reports` has no uniqueness constraint on
+  `match_id`, so a second run (e.g. regenerating after a bad result,
+  like the appearance-event one) would otherwise add a second row
+  alongside the first rather than replacing it.
 
 Known gaps (in priority order for next work):
 1. **No automated social posting.** Meta (Instagram/Facebook) requires app

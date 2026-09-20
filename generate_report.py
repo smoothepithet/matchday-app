@@ -43,9 +43,15 @@ def fetch_match(match_id: str) -> dict:
         raise ValueError(f"No match found with id {match_id}")
     match = matches[0]
 
+    # event_type=neq.appearance excludes the one row per squad member
+    # checked as playing that syncMatch() writes purely for
+    # player_season_stats.appearances - without this, the prompt gets a
+    # "Minute None: appearance (<name>)" line for every single player on
+    # the squad (see the identical fix + longer explanation in
+    # regenerate_report.py's fetch_match()).
     events_res = requests.get(
         f"{SUPABASE_URL}/rest/v1/events",
-        params={"match_id": f"eq.{match_id}", "order": "minute.asc"},
+        params={"match_id": f"eq.{match_id}", "event_type": "neq.appearance", "order": "minute.asc"},
         headers=headers,
         timeout=10,
     )

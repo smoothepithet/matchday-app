@@ -85,11 +85,22 @@ def fetch_match(match_id: str, token: str) -> dict:
     # name in via events.player_id's foreign key in one request, rather
     # than a separate players fetch + manual join - report-service's
     # build_prompt() wants player_name directly, not player_id.
+    #
+    # event_type=neq.appearance excludes the one row per squad member
+    # checked as playing that syncMatch() writes to the DB purely for
+    # player_season_stats.appearances - the live in-app flow never hits
+    # this bug because it builds the report from the recorder's in-memory
+    # match.events, which never contains appearance rows to begin with
+    # (they're synthesized separately, only at sync time, straight into
+    # the DB insert). Fetching raw from the events table here needs the
+    # same exclusion explicitly, or the model gets handed a "Minute None:
+    # appearance (<name>)" line for every single player on the squad.
     events_res = check(
         requests.get(
             f"{SUPABASE_URL}/rest/v1/events",
             params={
                 "match_id": f"eq.{match_id}",
+                "event_type": "neq.appearance",
                 "select": "event_type,minute,goal_type,players(name)",
                 "order": "minute.asc",
             },
@@ -134,14 +145,26 @@ def generate_and_save(match_id: str) -> str:
     )
     report_text = gen_res.json()["report"]
 
+    headers = {
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+    # `reports` has no uniqueness constraint on match_id, so a plain
+    # insert on a second run (e.g. re-running after a bad result, like
+    # the appearance-event leak this script originally had) would add a
+    # second row alongside the first rather than replacing it - the
+    # dashboard would then render both under the same match. Deleting
+    # any existing report(s) for this match first makes "regenerate"
+    # actually mean regenerate.
+    check(
+        requests.delete(f"{SUPABASE_URL}/rest/v1/reports", params={"match_id": f"eq.{match_id}"}, headers=headers, timeout=10),
+        "Old report delete",
+    )
     check(
         requests.post(
             f"{SUPABASE_URL}/rest/v1/reports",
-            headers={
-                "apikey": SUPABASE_ANON_KEY,
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json",
-            },
+            headers=headers,
             json={"match_id": match_id, "report_text": report_text},
             timeout=10,
         ),
