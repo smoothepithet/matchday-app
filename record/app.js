@@ -1240,7 +1240,14 @@ async function flushSyncQueues() {
   const queue = store.get("sync_queue", []);
   if (queue.length) {
     store.set("sync_queue", []);
-    for (const m of queue) await syncMatch(m);
+    // Mirrors the End Match handler's own syncMatch() -> generateAndSaveReport()
+    // pairing - a match synced via this path (offline queue/boot flush)
+    // used to never get a report generated at all, since that pairing
+    // only existed in the button handler itself, not here.
+    for (const m of queue) {
+      const savedMatch = await syncMatch(m);
+      if (savedMatch) await generateAndSaveReport(savedMatch.id, m);
+    }
   }
   const awardQueue = store.get("award_sync_queue", []);
   if (awardQueue.length) {

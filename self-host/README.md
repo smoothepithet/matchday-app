@@ -573,3 +573,31 @@ match: by the time it runs, `syncMatch()` has already succeeded, so a
 failure here (Ollama Cloud down, over quota, offline) just means that
 one match ends up without a generated report — check the browser
 console for the actual error if one goes missing.
+
+**Generating a report for a match that already synced without one** —
+happens whenever a match reaches `matches` through a path that doesn't
+also call `generateAndSaveReport()`: a match that sat in the offline
+sync queue (`record/app.js`'s `flushSyncQueues()` didn't call it either,
+until it did — see git history), or Ollama Cloud being briefly down/over
+quota when the match originally ended. `regenerate_report.py` (repo
+root) hits the real `report-service` and saves into `reports` exactly
+like the live flow does, so the result is indistinguishable from an
+automatically-generated one:
+```bash
+export SUPABASE_URL="https://matchday-api.shadowlan.org"
+export SUPABASE_ANON_KEY="<anon key, same one in record/app.js>"
+export COACH_EMAIL="<the shared coach account email>"
+export COACH_PASSWORD="<its password>"
+pip install requests   # only dependency
+python regenerate_report.py <match_id>
+```
+Find the `match_id` first if you don't already have it:
+```bash
+docker compose exec postgres psql -U postgres -d matchday -c \
+  "select id, opposition, match_date, our_score, their_score from matches order by created_at desc limit 10;"
+```
+This is a different tool from `generate_report.py` — that one's a
+separate, Anthropic/Claude-based reference script that was never part
+of the live flow, and (worth knowing if you ever reach for it) doesn't
+actually work as-is against this project's locked-down RLS, since it
+authenticates as the anon key rather than a signed-in user.

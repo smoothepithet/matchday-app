@@ -526,7 +526,23 @@ Working:
   (the `online` handler's logic, extracted into its own function) now
   also runs once at boot whenever a session exists, so a plain page
   reload drains the queue too, not just an actual connectivity
-  transition.
+  transition. `flushSyncQueues()` also now pairs each queued
+  `syncMatch()` with `generateAndSaveReport()`, matching the End Match
+  handler — matches synced via this path used to never get a report at
+  all, since that pairing only existed in the button handler itself.
+- `regenerate_report.py` (repo root, alongside `generate_report.py`):
+  generates/regenerates a report for an already-synced `match_id` by
+  hitting the real `report-service` (Ollama Cloud) and saving into
+  `reports` the same way the live flow does — needed the first time a
+  match reached `flushSyncQueues()` before the pairing fix above
+  existed, and generally useful any time Ollama Cloud was briefly
+  down/over quota when a match originally ended. Signs in with the
+  coach account (`COACH_EMAIL`/`COACH_PASSWORD` env vars) rather than
+  using the anon key as a bearer token the way `generate_report.py`
+  does — worth knowing if that older script ever gets reached for
+  again, since the anon-key approach doesn't actually work against
+  this project's RLS (which requires a real signed-in user), so as
+  written it would fail against the live backend.
 
 Known gaps (in priority order for next work):
 1. **No automated social posting.** Meta (Instagram/Facebook) requires app
