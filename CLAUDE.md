@@ -501,6 +501,32 @@ Working:
   `appearance` — the missing `res.ok` check just never reported it.
   Fixed by giving every row in `eventRows` the same keys, `goal_type:
   null` where it doesn't apply.
+- `syncMatch()`'s *matches* POST (the very first request in the sync
+  flow, before the events POST above) had this exact same `res.ok` gap
+  and was never covered by the earlier fix. Hit for real when
+  `kickoff_at` shipped in the app before its migration had been applied
+  on the live server: PostgREST rejected the insert with a plain error
+  object, `const [savedMatch] = await matchRes.json()` threw trying to
+  array-destructure it, and the generic `catch` at the bottom of
+  `syncMatch()` reported "Offline — queued, will retry when back
+  online" — actively misleading, since it wasn't a connectivity problem
+  at all, and both recorded matches that day never reached the
+  database. Fixed the same way as the events POST: a real rejection
+  surfaces via `alert()`. Unlike the events POST fix, this one *does*
+  still queue for retry (`queueForSync(m)`) — no duplicate risk here,
+  since the matches row was never created in the first place, so a
+  plain retry is exactly right once the real issue is fixed.
+- Discovered alongside the above: the offline queue (`sync_queue`) only
+  ever got flushed on the browser's `online` event — a genuine
+  offline→online transition. A server-side rejection (like the
+  `kickoff_at` one) queues an item too, but the device was never
+  actually offline, so `online` would never fire again to retry it —
+  the match would sit stuck in `localStorage` indefinitely with no way
+  to recover it short of toggling airplane mode. `flushSyncQueues()`
+  (the `online` handler's logic, extracted into its own function) now
+  also runs once at boot whenever a session exists, so a plain page
+  reload drains the queue too, not just an actual connectivity
+  transition.
 
 Known gaps (in priority order for next work):
 1. **No automated social posting.** Meta (Instagram/Facebook) requires app

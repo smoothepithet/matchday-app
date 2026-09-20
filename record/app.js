@@ -916,6 +916,7 @@ if (getSession()) {
   ensureFreshSession().then((session) => {
     if (session) syncSquadFromSupabase(session);
   });
+  flushSyncQueues();
 } else {
   showLogin();
 }
@@ -994,6 +995,31 @@ async function syncMatch(m) {
         kickoff_at: m.startedAt ? new Date(m.startedAt).toISOString() : null,
       }),
     });
+
+    if (!matchRes.ok) {
+      // fetch() only rejects on network failure, NOT on HTTP error status
+      // — this went unchecked here the same way the events POST did
+      // before an earlier fix, so a rejected insert (e.g. the live DB
+      // missing a column the app just started sending — kickoff_at
+      // before its migration had actually been applied on the live
+      // server) got caught by the destructuring below throwing on a
+      // non-array error body, then landed in the generic catch further
+      // down, which reported it as "Offline — queued" — misleading,
+      // since it's not a connectivity problem. Still queued for retry
+      // regardless (unlike the events POST's equivalent fix): no
+      // duplicate risk here, since the matches row was never created in
+      // the first place, so once the real issue is fixed a plain retry
+      // is exactly the right move — alert() surfaces what actually went
+      // wrong now instead of silently masking it as "offline".
+      const body = await matchRes.json().catch(() => ({}));
+      const message = body.message || body.hint || `Server rejected the match (HTTP ${matchRes.status})`;
+      console.error("Match sync rejected by server:", matchRes.status, body);
+      if (statusEl) statusEl.textContent = "Match NOT synced — queued, see alert";
+      alert(`Match did NOT sync — ${message}`);
+      queueForSync(m);
+      return null;
+    }
+
     const [savedMatch] = await matchRes.json();
 
     const eventRows = [];
@@ -1200,8 +1226,17 @@ function queueAwardForSync(award) {
   store.set("award_sync_queue", queue);
 }
 
-// Retry queued matches and awards whenever we come back online
-window.addEventListener("online", async () => {
+// Retry queued matches and awards. Called on a genuine offline->online
+// transition (the common case - pitch-side with no signal, then back in
+// range) AND once at boot (see the bottom of this file) - a queued item
+// isn't always stuck because the device was offline; a server-side
+// rejection (e.g. the live DB missing a column the app just started
+// sending) queues it too, and in that case the browser may never have
+// actually gone offline, so the "online" event would never fire again to
+// retry it. A plain reload after the real issue is fixed should be
+// enough to drain the queue rather than requiring the coach to toggle
+// airplane mode.
+async function flushSyncQueues() {
   const queue = store.get("sync_queue", []);
   if (queue.length) {
     store.set("sync_queue", []);
@@ -1212,7 +1247,9 @@ window.addEventListener("online", async () => {
     store.set("award_sync_queue", []);
     for (const a of awardQueue) await saveAward(a);
   }
-});
+}
+
+window.addEventListener("online", flushSyncQueues);
 
 // ---------------------------------------------------------------
 // Register service worker for offline app-shell caching
