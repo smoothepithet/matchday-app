@@ -125,9 +125,19 @@ Match facts:
 - Competition: {match.get('competition') or 'Friendly'}
 - Final score ({TEAM_NAME} – Opposition): {match['our_score']} – {match['their_score']}{kickoff_line}
 
-Event log (already sorted chronologically by minute — keep them in this
-exact order, do not re-sort or re-group them for narrative effect):
+Event log (raw source material only — already sorted chronologically by
+minute; when your writing mentions more than one of these moments, keep
+them in this same order rather than reordering for dramatic effect, but
+do not copy this list's bullet-point formatting or wording into your
+answer):
 {events_text or 'No individual events recorded.'}{notes_block}
+
+Write your answer as normal flowing prose — full sentences and
+paragraphs, the way an actual social media caption reads. Never as a
+bulleted or numbered list, and never by reproducing "Minute X: ..."
+lines from the event log above verbatim — turn them into sentences
+instead (e.g. "Zac opened the scoring from the penalty spot" rather
+than "Minute 1: goal (Zac) — penalty").
 
 Write in a warm, encouraging tone appropriate for kids' grassroots football —
 celebrate effort and teamwork, not just the scoreline. Mention standout

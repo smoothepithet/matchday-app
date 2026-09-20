@@ -424,6 +424,20 @@ Working:
   strftime's `"%-d"`/`"%-I"` no-padding flags (a glibc extension) in
   favor of manual day/hour formatting, since Alpine's musl libc isn't
   guaranteed to support them the same way.
+- The "already sorted chronologically... keep them in this exact
+  order, do not re-sort or re-group them for narrative effect" wording
+  added for the kickoff-time fix above had a real side effect once
+  `woodwork`/`half_time`/`full_time` gave the event log more entries to
+  work with: at least one generated report came back as the raw
+  `Minute X: ...` lines dumped almost verbatim into the middle of the
+  caption, sandwiched between a proper opening and closing sentence,
+  instead of an actual narrative — a smaller/free-tier Ollama Cloud
+  model likely over-read "keep them in this exact order" as "reproduce
+  this list," not "don't scramble the narrative sequence." Both prompt
+  builders now say explicitly the event log is "raw source material
+  only," instruct the model to never copy its bullet-point formatting,
+  and give a concrete before/after example ("Minute 1: goal (Zac) —
+  penalty" -> "Zac opened the scoring from the penalty spot").
 - Cross-app nav: the recorder's brand-strip has a "Dashboard" link
   (`../dashboard/`) and the dashboard's header has a "Recorder" link
   (`../record/`) — plain same-window `<a>` tags, deliberately not
