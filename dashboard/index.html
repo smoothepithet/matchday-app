@@ -20,6 +20,9 @@
        red's "us"/primary meaning stays unambiguous. */
     --gold: #e8b04b;
     --gold-dark: #b8842e;
+    /* Win badge only. Dark enough for the white "W" to stay legible
+       (~5:1, same as white on --red). */
+    --green: #15803d;
   }
   * { box-sizing: border-box; }
   body {
@@ -234,9 +237,9 @@
     font-size: 12px;
     color: var(--white);
   }
-  .result-W { background: var(--red); }
+  .result-W { background: var(--green); }
   .result-D { background: var(--gold); color: var(--void); }
-  .result-L { background: var(--steel-light); }
+  .result-L { background: var(--red); }
   .award-pill {
     display: inline-block;
     padding: 3px 10px;

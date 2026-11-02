@@ -93,11 +93,13 @@ second accent (`--gold`) reserved for the Awards theme — see below:
 | `--white` | `#ffffff` | primary text, secondary/neutral buttons |
 | `--silver` | `#b5b5b5` | secondary text |
 | `--steel` / `--steel-light` | `#2a2a2a` / `#3d3d3d` | borders, dividers, `dashboard/` nested card surfaces (report cards) |
-| `--red` / `--red-dark` | `#d71920` / `#a30f17` | accent #1 — "our team"/primary actions: `record/`'s Goal (Us) button, score digit, scoreboard frame, Sign In/Kick Off/Add Player CTAs; `dashboard/`'s Clean sheets value, Goals-per-match chart bars, Win badge, active tab underline, Sign In button |
+| `--red` / `--red-dark` | `#d71920` / `#a30f17` | accent #1 — "our team"/primary actions: `record/`'s Goal (Us) button, score digit, scoreboard frame, Sign In/Kick Off/Add Player CTAs; `dashboard/`'s Clean sheets value, Goals-per-match chart bars, Loss badge, active tab underline, Sign In button |
 | `--gold` / `--gold-dark` | `#e8b04b` / `#b8842e` | accent #2, `dashboard/`-only — Season Awards heading/pills, Draw badge; kept distinct from red so red's "us" meaning stays unambiguous elsewhere on the same page |
+| `--green` | `#15803d` | `dashboard/`-only — Win badge, nothing else |
 
-Result badges on `dashboard/` are colour-coded now (W=red, D=gold,
-L=steel-light) rather than the original all-grey scheme, but every badge
+Result badges on `dashboard/` are colour-coded (W=green, D=gold,
+L=red — the conventional win/loss colours, at the coach's request; W
+used to be red as "our team's" colour, L steel-light), but every badge
 still carries its own W/D/L letter — color reinforces the label, never
 replaces it as the only identity channel.
 
