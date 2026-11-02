@@ -1115,11 +1115,17 @@ function queueForSync(m) {
 // to draft a short match report, then save it via the same
 // authenticated PostgREST pattern already used for events/awards.
 // Best-effort only: a failure here (Ollama Cloud down, over quota,
-// offline) never re-queues or blocks anything — the match and its
-// events are already safely synced by the time this runs, so at worst
-// a match is just missing its generated report.
+// offline) never blocks anything — the match and its events are
+// already safely synced by the time this runs. It IS retried though:
+// the match is added to `report_queue` *before* the attempt and only
+// removed once the report row is actually saved, so a failed attempt
+// (tunnel still flapping, Ollama Cloud slow/down, app closed mid-
+// generation) gets picked up again by flushSyncQueues() on the next
+// boot/online event instead of leaving the match permanently without
+// a report — that used to need a manual regenerate_report.py run.
 // ---------------------------------------------------------------
 async function generateAndSaveReport(matchId, m) {
+  queueReport(matchId, m);
   const session = await ensureFreshSession();
   if (!session) return;
 
@@ -1156,7 +1162,7 @@ async function generateAndSaveReport(matchId, m) {
   if (!reportText) return;
 
   try {
-    await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/reports`, {
+    const saveRes = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/reports`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -1165,9 +1171,28 @@ async function generateAndSaveReport(matchId, m) {
       },
       body: JSON.stringify({ match_id: matchId, report_text: reportText }),
     });
+    // Same fetch()-doesn't-reject-on-HTTP-errors gap as the other POSTs
+    // — without this a rejected insert would still dequeue the report.
+    if (!saveRes.ok) throw new Error(`HTTP ${saveRes.status}`);
   } catch (err) {
-    console.error("Saving generated report failed:", err);
+    console.error("Saving generated report failed, will retry:", err);
+    return;
   }
+  dequeueReport(matchId);
+}
+
+// Keyed by matchId so a retry that's already queued doesn't get added
+// twice. Stores the full in-memory match (not just the id) because the
+// report is built from `m.events`/`m.notes` etc., same as End Match.
+function queueReport(matchId, m) {
+  const queue = store.get("report_queue", []);
+  if (queue.some((r) => r.matchId === matchId)) return;
+  queue.push({ matchId, match: m });
+  store.set("report_queue", queue);
+}
+
+function dequeueReport(matchId) {
+  store.set("report_queue", store.get("report_queue", []).filter((r) => r.matchId !== matchId));
 }
 
 // ---------------------------------------------------------------
@@ -1236,7 +1261,23 @@ function queueAwardForSync(award) {
 // retry it. A plain reload after the real issue is fixed should be
 // enough to drain the queue rather than requiring the coach to toggle
 // airplane mode.
+// Guarded so the boot call and an `online` event firing close together
+// can't both retry the same queued report — `reports` has no uniqueness
+// constraint on match_id, so that would save two rows for one match.
+// The flag lives on the function itself rather than a top-level `let`:
+// the boot code calls this further up the file, before a `let` here
+// would have been initialized (temporal dead zone -> ReferenceError).
 async function flushSyncQueues() {
+  if (flushSyncQueues.running) return;
+  flushSyncQueues.running = true;
+  try {
+    await flushSyncQueuesOnce();
+  } finally {
+    flushSyncQueues.running = false;
+  }
+}
+
+async function flushSyncQueuesOnce() {
   const queue = store.get("sync_queue", []);
   if (queue.length) {
     store.set("sync_queue", []);
@@ -1253,6 +1294,12 @@ async function flushSyncQueues() {
   if (awardQueue.length) {
     store.set("award_sync_queue", []);
     for (const a of awardQueue) await saveAward(a);
+  }
+  // Reports whose earlier attempt failed (see generateAndSaveReport()).
+  // Not cleared up-front like the queues above — each entry only leaves
+  // the queue once its report is actually saved.
+  for (const r of store.get("report_queue", [])) {
+    await generateAndSaveReport(r.matchId, r.match);
   }
 }
 

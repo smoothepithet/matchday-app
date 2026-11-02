@@ -393,8 +393,8 @@ Working:
   quota. `record/app.js`'s `generateAndSaveReport()` then writes the
   returned text to `reports` itself. Best-effort only and never blocks or
   re-queues the match — `syncMatch()` has already succeeded by the time
-  this runs, so a failure here just means that one match ends up without
-  a generated report. `generate_report.py` (manual, Claude-based) still
+  this runs. A failed report attempt is retried automatically though,
+  via its own `report_queue` (see below). `generate_report.py` (manual, Claude-based) still
   exists as a standalone fallback/reference but isn't part of this flow.
   Each goal's `goal_type` is included in the event log sent to the
   prompt (as "— penalty"/"— free kick", omitted for open play) so
@@ -575,6 +575,28 @@ Working:
   `match_id`, so a second run (e.g. regenerating after a bad result,
   like the appearance-event one) would otherwise add a second row
   alongside the first rather than replacing it.
+- Report retry queue (`localStorage` key `report_queue`, entries
+  `{ matchId, match }`): `generateAndSaveReport()` adds the match to it
+  *before* attempting and only removes it once the `reports` POST
+  returns `res.ok`, so any failure — generation error, rejected save, or
+  the app being closed mid-generation (Ollama Cloud can take a while) —
+  leaves it queued. `flushSyncQueues()` retries everything in it on boot
+  and on `online`, after the match/award queues. Added after the
+  Cloudflare Tunnel went down: queued matches all synced once it came
+  back, but one report attempt failed and nothing retried it. Unlike
+  `sync_queue`, it's not cleared up-front, so `flushSyncQueues()` now
+  has a re-entrancy guard (`flushSyncQueues.running`, a property on the
+  function rather than a top-level `let`, since the boot call runs
+  earlier in the file than the declaration would) — otherwise the boot
+  flush and an `online` event close together could both save a report
+  for the same match (no uniqueness constraint on `reports.match_id`).
+  `regenerate_report.py` is still the fallback for a match synced from
+  another device, or before this queue existed — `python
+  regenerate_report.py --missing` finds every completed match with no
+  `reports` row and generates each one (the dashboard doesn't show match
+  ids, so this avoids digging one out of the DB by hand). It never
+  touches a match that already has a report, and one failure doesn't
+  stop the rest; re-running retries only what's still missing.
 
 Known gaps (in priority order for next work):
 1. **No automated social posting.** Meta (Instagram/Facebook) requires app

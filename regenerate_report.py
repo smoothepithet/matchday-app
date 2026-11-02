@@ -22,6 +22,12 @@ Usage:
     export COACH_EMAIL="..."
     export COACH_PASSWORD="..."
     python regenerate_report.py <match_id>
+    python regenerate_report.py --missing
+
+--missing finds every completed match that has no row in `reports` and
+generates one for each - handy after the tunnel/report-service has been
+down, since the dashboard doesn't show match ids to pass in by hand.
+Unlike <match_id>, it never touches a match that already has a report.
 """
 
 import os
@@ -121,8 +127,33 @@ def fetch_match(match_id: str, token: str) -> dict:
     return match
 
 
-def generate_and_save(match_id: str) -> str:
-    token = sign_in()
+def find_missing(token: str) -> list[dict]:
+    """Completed matches with no `reports` row, oldest first."""
+    headers = {"apikey": SUPABASE_ANON_KEY, "Authorization": f"Bearer {token}"}
+    matches = check(
+        requests.get(
+            f"{SUPABASE_URL}/rest/v1/matches",
+            params={
+                "status": "eq.completed",
+                "select": "id,match_date,opposition,our_score,their_score",
+                "order": "match_date.asc",
+            },
+            headers=headers,
+            timeout=10,
+        ),
+        "Match list fetch",
+    ).json()
+    reported = {
+        r["match_id"]
+        for r in check(
+            requests.get(f"{SUPABASE_URL}/rest/v1/reports", params={"select": "match_id"}, headers=headers, timeout=10),
+            "Report list fetch",
+        ).json()
+    }
+    return [m for m in matches if m["id"] not in reported]
+
+
+def generate_and_save(match_id: str, token: str) -> str:
     match = fetch_match(match_id, token)
 
     gen_res = check(
@@ -173,16 +204,51 @@ def generate_and_save(match_id: str) -> str:
     return report_text
 
 
+def print_report(report: str) -> None:
+    print("\n--- REPORT SAVED ---\n")
+    print(report)
+    print("\n---------------------\n")
+
+
+def run_missing(token: str) -> None:
+    missing = find_missing(token)
+    if not missing:
+        print("Every completed match already has a report.")
+        return
+
+    print(f"{len(missing)} match(es) without a report:")
+    for m in missing:
+        print(f"  {m['match_date']}  vs {m['opposition']} ({m['our_score']}-{m['their_score']})  {m['id']}")
+
+    # check() raises SystemExit on failure - caught per match so one bad
+    # generation (e.g. Ollama Cloud timing out) doesn't stop the rest.
+    failed = []
+    for m in missing:
+        print(f"\nGenerating: {m['match_date']} vs {m['opposition']}...")
+        try:
+            print_report(generate_and_save(m["id"], token))
+        except SystemExit as err:
+            print(f"FAILED: {err}")
+            failed.append(m)
+
+    print(f"Done - {len(missing) - len(failed)} generated, {len(failed)} failed.")
+    if failed:
+        print("Re-run with --missing to retry the failed ones.")
+        sys.exit(1)
+
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: python regenerate_report.py <match_id>")
+        print("       python regenerate_report.py --missing")
         sys.exit(1)
 
     if not (SUPABASE_URL and SUPABASE_ANON_KEY and COACH_EMAIL and COACH_PASSWORD):
         print("Set SUPABASE_URL, SUPABASE_ANON_KEY, COACH_EMAIL, and COACH_PASSWORD first.")
         sys.exit(1)
 
-    report = generate_and_save(sys.argv[1])
-    print("\n--- REPORT SAVED ---\n")
-    print(report)
-    print("\n---------------------\n")
+    token = sign_in()
+    if sys.argv[1] == "--missing":
+        run_missing(token)
+    else:
+        print_report(generate_and_save(sys.argv[1], token))
